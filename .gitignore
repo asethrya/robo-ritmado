@@ -1,0 +1,15 @@
+# Arquivos locais e temporários
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.log
+*.tmp
+*.zip
+node_modules/
+.env
+.env.*
+!.env.example
+.vscode/
+.idea/
+playwright-report/
+test-results/

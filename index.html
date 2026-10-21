@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#150f2e">
+  <meta name="description" content="Robô Ritmado: ajude Pixel a viajar do Reino dos Doces até Brinquedolândia em uma aventura musical.">
+  <title>Robô Ritmado • A aventura de Pixel</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect rx='16' width='64' height='64' fill='%23170e30'/%3E%3Ctext x='11' y='48' font-size='48' fill='%23fa75d8'%3E✦%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="stage.css?v=0.4">
+  <link rel="stylesheet" href="worlds.css?v=0.4">
+  <script src="levels.js?v=0.4" defer></script>
+  <script src="game.js?v=0.4" defer></script>
+</head>
+<body data-theme="doces">
+  <div class="world" aria-hidden="true"></div>
+  <div class="ambient" aria-hidden="true"><i>✦</i><i>♪</i><i>✧</i><i>♫</i><i>✦</i><i>♡</i><i>✧</i><i>♪</i></div>
+  <div class="app">
+    <header class="topbar">
+      <a class="brand" href="index.html" aria-label="Robô Ritmado, início"><span class="brand-star">✦</span><strong>Robô <span>Ritmado</span></strong></a>
+      <nav class="journey-nav" aria-label="Mundos da aventura"><button id="worldCandy" class="world-chip" aria-current="step">01 <span>Reino dos Doces</span></button><span class="journey-link">···✦···</span><button id="worldToys" class="world-chip" disabled>02 <span>Brinquedolândia</span><small id="toyLock">🔒</small></button></nav>
+      <div class="top-actions"><button id="effects" class="icon-button" aria-pressed="false" title="Reduzir os efeitos visuais">✧ <span>Efeitos suaves</span></button><button id="fullscreen" class="icon-button" title="Alternar tela cheia" aria-label="Alternar tela cheia">⛶</button></div>
+    </header>
+
+    <main>
+      <section class="stage" aria-label="Jogo de ritmo no Reino dos Doces">
+        <div class="stage-top">
+          <div class="chapter"><span id="chapterLabel" class="eyebrow">FASE 01 · PRIMEIRA PARADA</span><h1><span id="levelTitle">Reino dos</span> <em id="levelEm">Doces</em></h1><p id="levelSubtitle">Doces, cristais e uma batida que abre caminhos.</p></div>
+          <div class="portal-card"><div class="portal-heading"><span>✦ ENERGIA DO PORTAL</span><b id="energyValue">0%</b></div><div class="energy-track"><div id="energyFill"></div></div><p id="energyHint">Cada acerto nos leva mais longe.</p></div>
+          <div class="scoreboard" aria-label="Placar">
+            <div><span>TOTAL</span><strong id="score">00000</strong></div>
+            <div class="combo-stat"><span>COMBO</span><strong><b id="combo">0</b><small>×</small></strong></div>
+            <div><span>RECORDE</span><strong id="best">00000</strong></div>
+          </div>
+        </div>
+
+        <div class="play-space">
+          <div class="track-shell" id="trackShell">
+            <div class="track-meta"><span><i></i> <span id="trackName">PISTA DE CRISTAL</span></span><span id="tempoLabel">90 BPM · FÁCIL</span></div>
+            <canvas id="track" aria-label="Quatro pistas com setas que descem até a linha de acerto"></canvas>
+            <div class="track-instruction">Aperte quando as setas se encontrarem</div>
+            <div id="judgment" class="judgment" aria-hidden="true"></div>
+            <div id="countdown" class="countdown" aria-hidden="true"></div>
+
+            <div id="intro" class="overlay intro">
+              <span class="pill">✦ AVENTURA MUSICAL</span>
+              <h2 id="introTitle">O caminho de casa<br>começa no <em>ritmo.</em></h2>
+              <p id="introCopy">Pixel se perdeu entre os mundos.<br>Toque na batida e carregue o portal!</p>
+              <div class="tutorial-keys" aria-label="Use as quatro setas do teclado"><kbd>←</kbd><kbd>↓</kbd><kbd>↑</kbd><kbd>→</kbd></div>
+              <p class="tutorial-copy">Espere a seta cair até o alvo.<br>Então aperte a mesma seta no teclado.</p>
+              <button id="start" class="primary-button">Vamos tocar <span>▶</span></button>
+              <span id="introDetail" class="intro-detail">43 segundos de música · Meta: 2.600 pontos</span>
+              <p id="audioError" class="error" role="alert" hidden></p>
+            </div>
+
+            <div id="pauseOverlay" class="overlay" hidden><span class="pill">Ⅱ UMA PAUSA NA BATIDA</span><h2>Pixel está<br>te esperando.</h2><p>As notas e a música estão pausadas.</p><button id="resume" class="primary-button">Continuar <span>▶</span></button><button id="restartPause" class="text-button">Recomeçar a música</button></div>
+
+            <div id="results" class="overlay result-overlay" hidden>
+              <span id="resultPill" class="pill">✦ VIAGEM CONCLUÍDA</span><div class="result-stars" id="stars" aria-label="Resultado em estrelas">✦ ✦ ✦</div>
+              <h2 id="resultTitle">Você fez música!</h2><p id="resultMessage"></p>
+              <strong id="resultScore" class="result-score">0 <small>pontos</small></strong>
+              <div class="result-grid"><div><b id="resultPerfect">0</b><span>No ritmo!</span></div><div><b id="resultGood">0</b><span>Muito bem!</span></div><div><b id="resultNear">0</b><span>Quase!</span></div><div><b id="resultMiss">0</b><span>Próxima!</span></div></div>
+              <div class="result-detail" id="resultDetail"></div>
+              <button id="nextStage" class="primary-button portal-button" hidden>Entrar em Brinquedolândia <span>✦</span></button>
+              <button id="playAgain" class="primary-button">Tocar de novo <span>↻</span></button>
+              <span id="resultHint" class="intro-detail">Complete a música para seguir viagem.</span>
+            </div>
+          </div>
+
+          <div class="pixel-side">
+            <div id="pixelArt" class="pixel-art" role="img" aria-label="Pixel de corpo inteiro dançando com a guitarra, no traje do Reino dos Doces"><canvas id="pixelSprite" aria-hidden="true"></canvas></div>
+            <span id="pixelMessage" class="sr-only">Vamos encontrar a nossa batida?</span>
+            <p id="spriteStatus" class="sprite-status" role="status">Preparando Pixel…</p>
+          </div>
+        </div>
+
+        <div class="song-strip"><div class="song-icon" aria-hidden="true">♫</div><div class="song-info"><strong id="songName">Doce Travessia</strong><span id="songDescription">Sinos de cristal · 90 BPM</span></div><span id="time">0:00 / 0:43</span><div class="song-progress" role="progressbar" aria-label="Progresso da música" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="songFill"></div></div><button id="pause" class="pause-button" disabled aria-label="Pausar música">Ⅱ</button><label class="volume-control"><span aria-hidden="true">♪</span><input id="volume" type="range" min="0" max="100" value="55" aria-label="Volume da música"></label></div>
+      </section>
+
+      <section class="controls" aria-label="Controles e ajustes">
+        <div class="control-help"><span class="keyboard-legend"><kbd>←</kbd><kbd>↓</kbd><kbd>↑</kbd><kbd>→</kbd></span><span>para tocar <b>·</b> <kbd>Esc</kbd> para pausar</span></div>
+        <label class="sync-control" title="Valor positivo: o jogo aceita o comando mais tarde. Valor negativo: aceita mais cedo.">Ajuste de ritmo <input id="offset" type="range" min="-200" max="200" step="10" value="0" aria-label="Ajuste do atraso entre som e comando em milissegundos"><output id="offsetValue">0 ms</output></label>
+      </section>
+      <div class="touch-controls" aria-label="Setas para jogar com toque"><button data-lane="0" aria-label="Esquerda">←</button><button data-lane="1" aria-label="Baixo">↓</button><button data-lane="2" aria-label="Cima">↑</button><button data-lane="3" aria-label="Direita">→</button></div>
+    </main>
+    <footer><span>✦ ROBÔ RITMADO · SIGA O RITMO. EXPLORE O INFINITO.</span><span>PROTÓTIPO 0.4 <b>•</b> DOIS MUNDOS</span></footer>
+  </div>
+  <div id="travelOverlay" class="travel-overlay" hidden role="status" aria-live="polite"><div class="travel-rings" aria-hidden="true"><i></i><i></i><i></i><b>✦</b></div><span class="pill">NOVO MUNDO DESBLOQUEADO</span><h2>Próxima parada:<br><em>Brinquedolândia!</em></h2><p id="travelSummary">Seus pontos viajam com você.</p><span id="travelStatus">Abrindo o portal…</span><button id="retryTravel" class="primary-button" hidden>Tentar abrir o portal novamente</button></div>
+  <div id="announcer" class="sr-only" role="status" aria-live="polite"></div>
+</body>
+</html>
