@@ -2,12 +2,28 @@
   'use strict';
   const $ = id => document.getElementById(id);
   const LEVELS = window.RR_LEVELS;
+  const preferences = () => window.RR_SETTINGS.get();
+  let runRate = RR_SETTINGS.rate(), runArrowSpeed = preferences().arrowSpeed;
+  let captionUntil = 0;
+  function palette() {
+    const p = preferences();
+    if (p.highContrast) return ['#ffff00','#00ffff','#ffffff','#ff77ff'];
+    const variants = { protanopia: ['#77caff','#ffe28a','#ffffff','#c2a0ff'],
+      deuteranopia: ['#79c4ff','#ffbd71','#eee4ff','#85eddf'],
+      tritanopia: ['#ff9bae','#85ead6','#ffffff','#d9a7ff'] };
+    return variants[p.colorMode] || level.colors;
+  }
+  function caption(text, seconds = 1.2) {
+    const el = $('gameCaption'); if (!el || !preferences().captions) return;
+    $('captionResult').textContent = text; captionUntil = performance.now() + seconds * 1000;
+  }
   let levelIndex = 0, level = LEVELS[0], bankedScore = 0, toysUnlocked = false;
   let BPM, BEAT, SONG_BEATS, DURATION, COLORS, MELODY, BASS, CHART, MAX_POINTS, GOAL, FRAMES;
   function configureLevel(index) {
     levelIndex = index; level = LEVELS[index];
-    BPM = level.bpm; BEAT = 60 / BPM; SONG_BEATS = level.beats; DURATION = SONG_BEATS * BEAT;
-    COLORS = level.colors; MELODY = level.melody; BASS = level.bass; FRAMES = level.frames;
+    runRate = RR_SETTINGS.rate(); runArrowSpeed = preferences().arrowSpeed;
+    BPM = level.bpm; BEAT = 60 / BPM / runRate; SONG_BEATS = level.beats; DURATION = SONG_BEATS * BEAT;
+    COLORS = palette(); MELODY = level.melody; BASS = level.bass; FRAMES = level.frames;
     CHART = [];
     for (let beat = 4, n = 0; beat < 60; beat++) {
       if (level.skipBeat(beat)) continue;
@@ -23,15 +39,7 @@
   const JCOLORS = { perfect: '#ffb7e7', good: '#92e6ff', near: '#ffe49d', miss: '#c8bfde' };
   const canvas = $('track'), ctx = canvas.getContext('2d');
   const dancer = $('pixelSprite'), danceCtx = dancer.getContext('2d');
-  function imageAsset(url) {
-    const image = new Image();
-    const ready = new Promise((resolve, reject) => {
-      image.onload = () => resolve(image);
-      image.onerror = () => reject(new Error('Não foi possível carregar ' + url + '. Extraia a pasta completa do jogo.'));
-    });
-    ready.catch(() => {}); // Errors are surfaced when the player enters this world.
-    image.src = url; return { image, ready };
-  }
+  const imageAsset = url => RR_SPRITES.load(url);
   const assets = LEVELS.map(l => ({ sprite: imageAsset(l.sprite), background: imageAsset(l.background) }));
   let sprite = assets[0].sprite.image;
   const GROOVES = [
@@ -43,7 +51,7 @@
   let danceTime = 0, danceFrame = 0, danceLevel = 0, reaction = 0, reactionKind = 'perfect', reactionLane = 0;
   const danceSparks = [];
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  assets[0].sprite.ready.then(() => { spriteReady = true; $('spriteStatus').hidden = true; }).catch(error => { $('spriteStatus').textContent = error.message; });
+  assets[0].sprite.ready.then(() => { $('spriteStatus').hidden = true; }).catch(error => { $('spriteStatus').textContent = error.message; });
   let width = 500, height = 500, notes = [], particles = [], rings = [];
   let state = 'ready', previousState = '', score = 0, combo = 0, maxCombo = 0;
   let stats = { perfect: 0, good: 0, near: 0, miss: 0 }, best = 0;
@@ -82,8 +90,8 @@
     $('levelTitle').textContent = level.title; $('levelEm').textContent = level.emphasis;
     $('levelSubtitle').textContent = level.subtitle;
     $('trackName').textContent = levelIndex ? 'PISTA DAS ESTRELAS' : 'PISTA DE CRISTAL';
-    $('tempoLabel').textContent = `${BPM} BPM · ${levelIndex ? 'NOVO RITMO' : 'FÁCIL'}`;
-    $('songName').textContent = level.song; $('songDescription').textContent = `${level.style} · ${BPM} BPM`;
+    $('tempoLabel').textContent = `${Math.round(BPM * runRate)} BPM · ${runRate < 1 ? Math.round(runRate * 100) + '% DO RITMO' : levelIndex ? 'NOVO RITMO' : 'FÁCIL'}`;
+    $('songName').textContent = level.song; $('songDescription').textContent = `${level.style} · ${Math.round(BPM * runRate)} BPM`;
     $('time').textContent = `0:00 / ${formatTime(Math.ceil(DURATION))}`;
     $('songFill').style.width = '0%';
     document.querySelector('.song-progress').setAttribute('aria-valuenow', '0');
@@ -96,16 +104,22 @@
   }
   async function showLevel(index, carry = 0) {
     const token = ++generation;
-    state = 'loading'; updateWorldButtons(); clearInterval(scheduler); stopVoices();
+    state = 'loading'; spriteReady = false; dancer.style.visibility = 'hidden'; updateWorldButtons(); clearInterval(scheduler); stopVoices();
     await Promise.all([assets[index].sprite.ready, assets[index].background.ready]);
     if (token !== generation) return;
-    configureLevel(index); bankedScore = carry; sprite = assets[index].sprite.image; spriteReady = true;
+    configureLevel(index); bankedScore = carry; sprite = assets[index].sprite.image;
+    RR_SPRITES.validate(sprite, FRAMES);
+    danceTime = 0; danceFrame = 0; danceLevel = 0; reaction = 0;
     score = 0; combo = 0; maxCombo = 0; notes = []; particles = []; rings = []; danceSparks.length = 0;
     stats = { perfect: 0, good: 0, near: 0, miss: 0 }; reaction = 0;
     $('intro').hidden = false; $('results').hidden = true; $('pauseOverlay').hidden = true;
     $('countdown').innerHTML = ''; $('judgment').classList.remove('show');
     $('pause').disabled = true; $('offset').disabled = false; $('spriteStatus').hidden = true;
     state = 'ready'; updateLevelUI();
+    // Wait for visible layout before committing the decoded costume to the canvas.
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    if (token !== generation) return;
+    resize(); resizeDancer(); spriteReady = true; dancer.style.visibility = 'visible';
   }
   async function selectWorld(index) {
     if (settingsLocked() || (index === 1 && !toysUnlocked)) return;
@@ -124,7 +138,7 @@
         [72,76,79,84,88].forEach((n, i) => tone(n, audio.currentTime + i * .09, .5, .055, 'sine'));
       }
       await Promise.all([assets[1].sprite.ready, assets[1].background.ready,
-        new Promise(resolve => setTimeout(resolve, reducedMotion ? 150 : 2200))]);
+        new Promise(resolve => setTimeout(resolve, RR_SETTINGS.gentle() ? 250 : 2200))]);
       await showLevel(1, carry);
       $('travelOverlay').hidden = true;
       $('announcer').textContent = 'Bem-vindo a Brinquedolândia. Seus pontos foram preservados. Clique em Vamos tocar para ouvir a nova música.';
@@ -135,7 +149,9 @@
     }
     $('nextStage').disabled = false;
   }
+  let manualSoft = soft;
   function setSoft() {
+    soft = manualSoft || RR_SETTINGS.gentle();
     document.body.classList.toggle('soft-effects', soft);
     $('effects').setAttribute('aria-pressed', String(soft));
     $('effects').title = soft ? 'Ativar efeitos completos' : 'Reduzir os efeitos visuais';
@@ -162,42 +178,44 @@
   }
   new ResizeObserver(resizeDancer).observe(dancer);
   function drawDancer(dt, isSongRunning) {
+    const noDance = reducedMotion || preferences().sensitivity;
     danceCtx.clearRect(0, 0, dancerWidth, dancerHeight);
     if (!spriteReady) return;
     if (state !== 'paused') {
-      danceTime = isSongRunning ? clock() : danceTime + dt;
+      danceTime = isSongRunning && RR_SETTINGS.motion() === 1 ? clock() : danceTime + dt * RR_SETTINGS.motion();
       reaction = Math.max(0, reaction - dt);
     }
     const scoredLevel = score >= GOAL * .7 ? 2 : score >= GOAL * .25 ? 1 : 0;
     danceLevel = Math.max(scoredLevel, combo >= 8 ? 2 : combo >= 4 ? 1 : 0);
     const phase = danceTime / BEAT;
     const cycle = ((Math.floor(phase * 2) % 16) + 16) % 16;
-    danceFrame = reducedMotion ? 0 : GROOVES[danceLevel][cycle];
-    if (!reducedMotion && reaction > .18 && ['playing', 'paused'].includes(state)) {
+    danceFrame = noDance || state === 'countdown' || state === 'ready' ? 0 : GROOVES[danceLevel][cycle];
+    if (!noDance && reaction > .18 && ['playing', 'paused'].includes(state)) {
       if (reactionKind === 'perfect' || reactionKind === 'good') danceFrame = [1, 4, 6, 3][reactionLane];
       else if (reactionKind === 'near') danceFrame = 7;
     }
-    const [sx, sy, sw, sh] = FRAMES[danceFrame];
-    const scale = Math.min(dancerWidth * .92 / 440, dancerHeight * .95 / 552);
-    const motion = soft ? .35 : 1;
+    const [sx, sy, sw, sh] = FRAMES[danceFrame] || FRAMES[0];
+    if (!sprite.complete || !sprite.naturalWidth || sx + sw > sprite.naturalWidth || sy + sh > sprite.naturalHeight) return;
+    const scale = Math.min(dancerWidth * .9 / (level.designWidth || 440), dancerHeight * .94 / (level.designHeight || 552));
+    const motion = soft ? .2 : 1;
     const sway = Math.sin(phase * Math.PI), spring = Math.abs(Math.sin(phase * Math.PI * 2));
     const power = (1 + danceLevel * .38) * motion;
-    const hop = reducedMotion ? 0 : spring * (4 + danceLevel * 3) * scale * motion;
-    const center = dancerWidth * .52 + (reducedMotion ? 0 : sway * 12 * scale * power);
-    const floor = dancerWidth < 180 ? dancerHeight * .59 + 220 * scale : dancerHeight * .965;
+    const hop = noDance ? 0 : spring * (4 + danceLevel * 3) * scale * motion;
+    const center = dancerWidth * .52 + (noDance ? 0 : sway * 12 * scale * power);
+    const floor = dancerHeight * .965;
     const reactionPower = reaction > 0 ? Math.sin(Math.min(1, reaction / .42) * Math.PI) : 0;
-    const lift = reactionKind === 'perfect' ? reactionPower * 12 * scale * motion : 0;
+    const lift = !noDance && reactionKind === 'perfect' ? reactionPower * 12 * scale * motion : 0;
     // A floor contact shadow is drawn separately; the sprite background stays empty.
     danceCtx.save();
     danceCtx.fillStyle = '#34114b35'; danceCtx.beginPath();
     danceCtx.ellipse(dancerWidth * .52, floor - 3, 114 * scale, 12 * scale, 0, 0, Math.PI * 2); danceCtx.fill();
     danceCtx.restore();
     const glowY = floor - 220 * scale;
-    const beatGlow = reducedMotion ? .2 : .4 + spring * .25;
+    const beatGlow = noDance ? .2 : .4 + spring * .25;
     const aura = danceCtx.createRadialGradient(center, glowY, 12 * scale, center, glowY, 225 * scale);
     aura.addColorStop(0, level.accent + (soft ? '12' : '2b')); aura.addColorStop(1, level.accent + '00');
     danceCtx.fillStyle = aura; danceCtx.fillRect(center - 240 * scale, glowY - 240 * scale, 480 * scale, 480 * scale);
-    if (!soft && !reducedMotion) {
+    if (!soft && !noDance) {
       danceCtx.save(); danceCtx.shadowBlur = 13; danceCtx.lineWidth = 2 * scale;
       for (let arc = 0; arc < 3; arc++) {
         danceCtx.strokeStyle = COLORS[(arc + danceLevel) % 4] + 'a0';
@@ -216,10 +234,10 @@
     // Draw each transparent pose once to avoid alpha seams. Authored arm/leg
     // changes provide the dance, with a continuous foot-pivot sway between poses.
     danceCtx.translate(center, floor - hop - lift);
-    danceCtx.rotate(reducedMotion ? 0 : sway * .018 * power);
+    danceCtx.rotate(noDance ? 0 : sway * .018 * power);
     danceCtx.drawImage(sprite, sx, sy, sw, sh, -sw * scale / 2, -sh * scale, sw * scale, sh * scale);
     danceCtx.restore();
-    if (reaction > 0 && reactionKind !== 'miss' && !soft && !reducedMotion) {
+    if (reaction > 0 && reactionKind !== 'miss' && !soft && !noDance) {
       const progress = 1 - reaction / .42, radius = (25 + progress * 120) * scale;
       danceCtx.save(); danceCtx.globalAlpha = (1 - progress) * .8;
       danceCtx.strokeStyle = COLORS[reactionLane]; danceCtx.lineWidth = (4 - progress * 3) * scale;
@@ -237,7 +255,7 @@
     }
     danceCtx.globalAlpha = 1;
     for (let i = danceSparks.length - 1; i >= 0; i--) if (danceSparks[i].age >= danceSparks[i].life) danceSparks.splice(i, 1);
-    if (!soft && !reducedMotion) {
+    if (!soft && !noDance) {
       // Low-intensity musical sparkles continue during idle and gameplay.
       for (let i = 0; i < 9; i++) {
         const p = ((danceTime * .24 + i / 9) % 1 + 1) % 1;
@@ -345,7 +363,7 @@
     }
     await audio.resume();
     if (audio.state !== 'running') throw new Error('O navegador ainda não liberou o som. Clique em Vamos tocar novamente.');
-    master.gain.setValueAtTime(Number($('volume').value) / 100 * .72, audio.currentTime);
+    master.gain.setValueAtTime(preferences().musicVolume / 100 * .72, audio.currentTime);
   }
   function stopVoices() {
     for (const voice of voices) { try { voice.stop(); } catch {} }
@@ -368,11 +386,12 @@
       await Promise.all([assets[levelIndex].sprite.ready, assets[levelIndex].background.ready]);
       await prepareAudio();
       if (token !== generation) return;
+      configureLevel(levelIndex); updateLevelUI();
       score = 0; combo = 0; maxCombo = 0;
       stats = { perfect: 0, good: 0, near: 0, miss: 0 };
       notes = CHART.map((n, i) => ({ ...n, id: i, result: null }));
       particles = []; rings = []; flashes.fill(0); pressed.fill(false); judgmentUntil = 0;
-      danceSparks.length = 0; reaction = 0;
+      danceSparks.length = 0; reaction = 0; danceTime = 0; danceFrame = 0;
       $('judgment').classList.remove('show');
       $('intro').hidden = true; $('pauseOverlay').hidden = true; $('results').hidden = true;
       $('pause').disabled = false; $('pause').textContent = 'Ⅱ'; $('pause').setAttribute('aria-label', 'Pausar música');
@@ -399,7 +418,7 @@
     $('pause').setAttribute('aria-label', 'Continuar música');
     await audio.suspend();
     $('resume').focus({ preventScroll: true });
-    $('announcer').textContent = 'Jogo pausado.';
+    $('announcer').textContent = 'Jogo pausado.'; if ($('captionApproach')) $('captionApproach').textContent = ''; caption('Partida pausada. Música e setas paradas.', 60);
   }
   async function resume() {
     if (state !== 'paused' || starting) return;
@@ -409,11 +428,12 @@
       state = previousState; $('pauseOverlay').hidden = true;
       $('pause').textContent = 'Ⅱ'; $('pause').setAttribute('aria-label', 'Pausar música');
       scheduleMusic(); scheduler = setInterval(scheduleMusic, 25);
-      $('announcer').textContent = 'Vamos continuar!';
+      $('announcer').textContent = 'Vamos continuar!'; caption('Continue na batida!', 1);
     } catch { $('announcer').textContent = 'Clique em Continuar para liberar o som.'; }
     finally { starting = false; }
   }
   function spawn(lane, kind) {
+    if (preferences().sensitivity) return;
     const x = laneX(lane), y = targetY();
     for (let i = 0; i < (soft ? 4 : kind === 'perfect' ? 42 : kind === 'miss' ? 8 : 24); i++) {
       const angle = Math.random() * Math.PI * 2, speed = 40 + Math.random() * 230;
@@ -430,7 +450,7 @@
     combo = kind === 'perfect' || kind === 'good' ? combo + 1 : 0;
     maxCombo = Math.max(maxCombo, combo);
     reaction = .42; reactionKind = kind; reactionLane = note.lane;
-    if (kind !== 'miss' && !reducedMotion) for (let i = 0; i < (soft ? 2 : kind === 'perfect' ? 24 : 14); i++) {
+    if (kind !== 'miss' && !reducedMotion && !preferences().sensitivity) for (let i = 0; i < (soft ? 2 : kind === 'perfect' ? 24 : 14); i++) {
       danceSparks.push({ x: -100 + Math.random() * 170, y: -50 + Math.random() * 60,
         vx: (Math.random() - .5) * 220, vy: -70 - Math.random() * 130,
         age: 0, life: .8 + Math.random() * .4, color: COLORS[note.lane],
@@ -438,7 +458,10 @@
     }
     if (danceSparks.length > 90) danceSparks.splice(0, danceSparks.length - 90);
     updateScore(); spawn(note.lane, kind);
-    flashes[note.lane] = kind === 'miss' ? .08 : .35;
+    RR_AUDIO.hit(note.lane, kind);
+    const description = { perfect: 'Acerto no ritmo!', good: 'Acerto parcial. Muito bem!', near: 'Quase acerto!', miss: 'Erro. A próxima é nossa!' };
+    caption(`${description[kind]} ${DIRECTIONS[note.lane]}. +${POINTS[kind]} pontos. Total: ${bankedScore + score}.`, 1.25);
+    flashes[note.lane] = preferences().sensitivity ? 0 : kind === 'miss' ? .08 : .35;
     const label = $('judgment');
     label.style.color = JCOLORS[kind];
     label.innerHTML = `${LABELS[kind]}<small>${POINTS[kind] ? '+' + POINTS[kind] + ' PONTOS' : 'CONTINUE TOCANDO'}</small>`;
@@ -451,18 +474,18 @@
     }
   }
   function input(lane) {
-    flashes[lane] = .16;
+    flashes[lane] = preferences().sensitivity ? 0 : .16;
     if (state !== 'playing') return;
     const t = chartTime();
-    const candidates = notes.filter(n => !n.result && n.lane === lane && Math.abs(n.time - t) <= .24);
+    const candidates = notes.filter(n => !n.result && n.lane === lane && Math.abs(n.time - t) <= .24 / runRate);
     candidates.sort((a, b) => Math.abs(a.time - t) - Math.abs(b.time - t));
     if (candidates.length) {
       const note = candidates[0], delta = Math.abs(note.time - t);
-      judge(note, delta <= .075 ? 'perfect' : delta <= .15 ? 'good' : 'near');
+      judge(note, delta <= .075 / runRate ? 'perfect' : delta <= .15 / runRate ? 'good' : 'near');
     } else {
       // Wrong direction consumes a note only during its actual hit window.
       // Extra presses between notes do not create additional score penalties.
-      const wrong = notes.filter(n => !n.result && Math.abs(n.time - t) <= .24)
+      const wrong = notes.filter(n => !n.result && Math.abs(n.time - t) <= .24 / runRate)
         .sort((a, b) => Math.abs(a.time - t) - Math.abs(b.time - t))[0];
       if (wrong) judge(wrong, 'miss');
     }
@@ -519,8 +542,8 @@
     ctx.shadowColor = color; ctx.shadowBlur = glow;
     const fill = ctx.createLinearGradient(-size / 2, -size / 2, size / 2, size / 2);
     fill.addColorStop(0, '#fff7f6'); fill.addColorStop(.35, color); fill.addColorStop(1, color + 'aa');
-    ctx.fillStyle = filled ? fill : '#19152ed9'; ctx.fill(); ctx.strokeStyle = filled ? '#fff3ffdd' : color; ctx.stroke();
-    if (filled) {
+    ctx.fillStyle = filled ? (preferences().highContrast ? color : fill) : (preferences().highContrast ? '#000000' : '#19152ed9'); ctx.fill(); ctx.strokeStyle = filled ? '#fff3ffdd' : color; ctx.stroke();
+    if (filled && !soft && !preferences().highContrast) {
       ctx.save(); ctx.clip(); ctx.shadowBlur = 0;
       if (levelIndex) {
         ctx.fillStyle = '#ffffffb0'; starPath(ctx, 0, 0, size * .105, visualTime * .7); ctx.fill();
@@ -545,6 +568,7 @@
   function draw(timestamp) {
     requestAnimationFrame(draw);
     const dt = Math.min(.05, (timestamp - lastFrame) / 1000); lastFrame = timestamp;
+    if (document.body.dataset.screen !== 'game') return;
     if (state !== 'paused') visualTime += dt;
     const active = state === 'playing' || state === 'countdown';
     let t = active || state === 'paused' || state === 'results' ? chartTime() : -4 * BEAT;
@@ -560,7 +584,7 @@
     }
     if (state === 'playing') {
       if (musicT > BEAT * .8) $('countdown').innerHTML = '';
-      for (const note of notes) if (!note.result && t > note.time + .24) judge(note, 'miss');
+      for (const note of notes) if (!note.result && t > note.time + .24 / runRate) judge(note, 'miss');
       if (musicT >= DURATION + Math.max(0, offset / 1000)) finish();
     }
     if (active && state !== 'results') {
@@ -570,11 +594,17 @@
       $('time').textContent = `${formatTime(Math.min(DURATION, Math.max(0, musicT)))} / ${formatTime(Math.ceil(DURATION))}`;
     }
     if (judgmentUntil && timestamp > judgmentUntil) { $('judgment').classList.remove('show'); judgmentUntil = 0; }
+    if (preferences().captions && active) {
+      const approaching = notes.find(n => !n.result && n.time - t < 1.4 / runRate && n.time - t > -.24 / runRate);
+      const cue = approaching ? `${approaching.time - t < .24 / runRate ? 'AGORA: ' : 'Aproximando: '}${DIRECTIONS[approaching.lane]} ${['←','↓','↑','→'][approaching.lane]}` : 'Ouça a música. Aguarde a próxima seta.';
+      if ($('captionApproach').textContent !== cue) $('captionApproach').textContent = cue;
+      if (timestamp > captionUntil) $('captionResult').textContent = '';
+    }
     drawDancer(dt, active);
     ctx.clearRect(0, 0, width, height);
-    const target = targetY(), laneWidth = width * .2266667, size = Math.min(56, laneWidth * .64);
+    const target = targetY(), laneWidth = width * .2266667, size = Math.min(56 * (preferences().scaleEnabled ? preferences().arrowScale : 1), laneWidth * .88);
     const bg = ctx.createLinearGradient(0, 0, 0, height);
-    bg.addColorStop(0, levelIndex ? '#10265fe3' : '#31143fe0'); bg.addColorStop(1, levelIndex ? '#25224bc9' : '#351535cb'); ctx.fillStyle = bg; ctx.fillRect(0, 0, width, height);
+    bg.addColorStop(0, preferences().highContrast ? '#000000' : levelIndex ? '#10265fe3' : '#31143fe0'); bg.addColorStop(1, preferences().highContrast ? '#000000' : levelIndex ? '#25224bc9' : '#351535cb'); ctx.fillStyle = bg; ctx.fillRect(0, 0, width, height);
     // Lanes carry a subtle stable color so the hit line remains readable.
     for (let lane = 0; lane < 4; lane++) {
       const x = laneX(lane);
@@ -589,7 +619,7 @@
       }
     }
     // Jewel lights and themed ornaments along the track edges.
-    for (let side = 0; side < 2; side++) {
+    if (!preferences().sensitivity) for (let side = 0; side < 2; side++) {
       const x = side ? width - 7 : 7;
       for (let i = 0; i < 13; i++) {
         const y = 17 + i * (height - 34) / 12;
@@ -606,7 +636,7 @@
       ctx.fillStyle = COLORS[i % 4] + '55';
       if (i % 4 === 0) { starPath(ctx, x, y, 3.2, visualTime); ctx.fill(); } else ctx.fillRect(x, y, 2, 2);
     }
-    const travel = 2.3, speed = (target - 15) / travel;
+    const travel = 2.3 / runArrowSpeed / runRate, speed = (target - 15) / travel;
     if (settingsLocked() || state === 'results') {
       const first = Math.floor(t / BEAT);
       for (let b = first; b < first + 5; b++) {
@@ -636,7 +666,7 @@
       const approach = Math.max(0, Math.min(1, (target - y) / target));
       const x = laneX(note.lane) + (soft ? 0 : Math.sin(visualTime * 4 + note.id) * 3 * approach), color = COLORS[note.lane];
       const trail = ctx.createLinearGradient(0, y - 95, 0, y); trail.addColorStop(0, color + '00'); trail.addColorStop(1, color + '75');
-      ctx.fillStyle = trail; ctx.fillRect(x - 5, y - 95, 10, 82);
+      if (!preferences().sensitivity) { ctx.fillStyle = trail; ctx.fillRect(x - 5, y - 95, 10, 82); }
       if (!soft) {
         const halo = ctx.createRadialGradient(x, y, 3, x, y, size * .9);
         halo.addColorStop(0, color + '55'); halo.addColorStop(1, color + '00');
@@ -692,9 +722,9 @@
   $('restartPause').addEventListener('click', start);
   $('resume').addEventListener('click', resume);
   $('pause').addEventListener('click', () => state === 'paused' ? resume() : pause());
-  $('effects').addEventListener('click', () => { soft = !soft; setSoft(); save('pixel-effects', soft ? 'soft' : 'full'); });
+  $('effects').addEventListener('click', () => { manualSoft = !manualSoft; setSoft(); save('pixel-effects', manualSoft ? 'soft' : 'full'); });
   $('volume').addEventListener('input', () => {
-    if (audio && master) master.gain.setTargetAtTime(Number($('volume').value) / 100 * .72, audio.currentTime, .02);
+    RR_SETTINGS.set('musicVolume', Number($('volume').value));
   });
   $('offset').addEventListener('input', () => {
     if (settingsLocked()) return;
@@ -707,6 +737,7 @@
     } catch { $('announcer').textContent = 'Use o botão de tela cheia do seu navegador.'; }
   });
   document.addEventListener('keydown', event => {
+    if (document.body.dataset.screen !== 'game' || document.querySelector('dialog[open]')) return;
     if (event.target instanceof HTMLInputElement && !['playing', 'countdown'].includes(state)) return;
     const lane = KEYS.indexOf(event.key);
     if (lane >= 0) {
@@ -732,7 +763,7 @@
   // Read-only diagnostics for verifying timing, scoring, audio and pause behavior.
   // Gameplay has no autoplay or score-writing test hooks.
   Object.defineProperty(window, 'pixelDiagnostics', { value: Object.freeze({
-    snapshot: () => ({ state, level: levelIndex + 1, world: level.id, bpm: BPM, song: level.song,
+    snapshot: () => ({ state, rate: runRate, arrowSpeed: runArrowSpeed, palette: [...COLORS], level: levelIndex + 1, world: level.id, bpm: BPM, song: level.song,
       duration: DURATION, sprite: level.sprite, background: level.background, musicSignature: MELODY.join(',') + '/' + BASS.join(','),
       bankedScore, totalScore: bankedScore + score, unlocked: toysUnlocked,
       effects: { trackParticles: particles.length, rings: rings.length, dancerParticles: danceSparks.length, reduced: soft },
@@ -740,7 +771,9 @@
       score, combo, maxCombo, stats: { ...stats }, totalNotes: CHART.length, maxPoints: MAX_POINTS,
       goal: GOAL, offset, audioState: audio?.state || 'not-started',
       dancer: { ready: spriteReady, frame: danceFrame, level: danceLevel, time: danceTime,
-        reaction: reactionKind, reactionRemaining: reaction, width: dancerWidth, height: dancerHeight },
+        reaction: reactionKind, reactionRemaining: reaction, width: dancerWidth, height: dancerHeight,
+        sourceWidth: sprite.naturalWidth, sourceHeight: sprite.naturalHeight, sourceRect: [...(FRAMES[danceFrame] || FRAMES[0])],
+        visible: dancer.style.visibility !== 'hidden' },
       notes: notes.map(n => ({ lane: n.lane, time: n.time, result: n.result })) }),
     audioLevel: () => {
       if (!analyser) return 0;
@@ -748,5 +781,17 @@
       return Math.sqrt(data.reduce((sum, v) => sum + v * v, 0) / data.length);
     }
   }), writable: false });
+  function syncPreferences() {
+    COLORS = palette(); setSoft(); $('volume').value = preferences().musicVolume;
+    if (audio && master) master.gain.setTargetAtTime(preferences().musicVolume / 100 * .72, audio.currentTime, .02);
+    if (preferences().sensitivity) { particles = []; rings = []; danceSparks.length = 0; flashes.fill(0); }
+  }
+  window.addEventListener('rr-settings', syncPreferences); syncPreferences();
+  window.RR_GAME = Object.freeze({
+    pause, resume, palette,
+    canResume: () => state === 'paused',
+    stop() { ++generation; clearInterval(scheduler); stopVoices(); state = 'ready'; notes = []; pressed.fill(false); },
+    async adventure() { await showLevel(0, 0); await start(); if (state === 'ready') throw new Error($('audioError').textContent || 'Não foi possível iniciar a música.'); }
+  });
   resize(); resizeDancer(); requestAnimationFrame(draw);
 })();
