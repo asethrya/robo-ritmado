@@ -48,8 +48,8 @@
   `);
   document.body.insertAdjacentHTML('beforeend', `
     <dialog id="safetyDialog" class="safety-dialog" aria-labelledby="safetyTitle" aria-describedby="safetyCopy">
-      <div class="safety-body"><span class="safety-icon" aria-hidden="true">△</span><span class="dialog-kicker">ANTES DE ENCONTRAR A BATIDA</span><h2 id="safetyTitle">Aviso de Fotossensibilidade<br>e Epilepsia</h2>
-        <p id="safetyCopy">Este jogo contém luzes, animações e efeitos visuais que podem causar desconforto ou desencadear crises em pessoas fotossensíveis.</p>
+      <div class="safety-body"><span class="safety-icon" aria-hidden="true">♡</span><span class="dialog-kicker">ANTES DE ENCONTRAR A BATIDA</span><h2 id="safetyTitle">Aviso de Fotossensibilidade<br>e Epilepsia</h2>
+        <div class="safety-friends" aria-hidden="true"><span>♪</span><b>+ᴗ</b><span>♡</span></div><p class="safety-welcome">Vamos cuidar de você antes da diversão!</p><p id="safetyCopy">Este jogo contém luzes, animações e efeitos visuais que podem causar desconforto ou desencadear crises em pessoas fotossensíveis.</p>
         <p>Antes de jogar, vá até <strong>Acessibilidade</strong> e ajuste os estímulos visuais, o movimento e a velocidade às suas necessidades.</p>
         <button id="safetyAccessibility" class="orbit-button accessibility" data-cue="accessibility" autofocus><span class="button-icon" aria-hidden="true">◎</span>Abrir Acessibilidade<span class="button-arrow" aria-hidden="true">→</span></button>
         <button id="closeSafety" class="safety-close" data-cue="back">Fechar aviso e ir ao menu</button>
@@ -78,7 +78,7 @@
   appActions.innerHTML = '<button id="gameMenu" class="quiet-button" data-cue="back" aria-label="Pausar e voltar ao menu">☰ <span class="settings-label">Menu</span></button><button id="gameAccessibility" class="quiet-button" data-cue="accessibility" aria-label="Abrir Acessibilidade">◎</button>';
   document.querySelector('.top-actions').prepend(appActions);
   document.querySelector('.brand').addEventListener('click',e=>{e.preventDefault();returnMenu();});
-  document.querySelector('footer span:last-child').textContent='VERSÃO 0.6 • VAMOS TOCAR JUNTOS!';
+  document.querySelector('footer span:last-child').textContent='VERSÃO 0.7 • QUATRO MUNDOS PRA BRINCAR!';
   const buttonInfo={menuPlay:['Jogar','Começar a aventura'],menuTutorial:['Tutorial','Aprender com Pixel'],menuOptions:['Opções','Ajustar sons e velocidade'],menuAccessibility:['Acessibilidade','Do seu jeitinho'],menuAbout:['Sobre Nós','Conheça nossa turma']};
   for(const [id,[title,sub]] of Object.entries(buttonInfo)){const button=$(id);button.setAttribute('aria-label',title);for(const node of [...button.childNodes])if(node.nodeType===Node.TEXT_NODE)node.remove();const label=document.createElement('span');label.className='button-copy';label.innerHTML='<b>'+title+'</b><small>'+sub+'</small>';button.insertBefore(label,button.querySelector('.button-arrow'));}
   let greetingUntil=0;
@@ -249,8 +249,8 @@
     const [w,h]=dims.get(actorCanvas)||[1,1];act.clearRect(0,0,w,h);
     const motion=RR_SETTINGS.motion();if(!(currentScreen==='cutscene'&&cinemaPaused)&&!document.hidden&&!$('settingsDialog').open)actorTime+=dt*motion;
     if(currentScreen==='cutscene'){cinema.draw(shot,shotElapsed);return;}
-    let f=currentScreen==='tutorial'?(lesson===0||lesson===5?0:lesson<=2?5:1):[0,1,0,2][Math.floor(actorTime/2.8)%4];
-    if(currentScreen==='menu'&&performance.now()<greetingUntil)f=5;
+    let f=0;
+    if(currentScreen==='menu'&&performance.now()<greetingUntil)f=0;
     const sway=motion===0?0:Math.sin(actorTime*.7)*.009;
     // A single complete pose avoids overlapping silhouettes during slow motion.
     actorPose(actorImage,frames[f],w,h,1,sway);
@@ -267,9 +267,9 @@
   function renderTutorial(dt){
     if(!tutorialActive)return;const [w,h]=dims.get(tutorialCanvas)||[1,1],s=RR_SETTINGS.get(),rate=RR_SETTINGS.rate();
     tutorialFrozen=document.hidden||$('settingsDialog').open||$('safetyDialog').open;if(!tutorialFrozen)lessonElapsed+=dt;
-    tc.clearRect(0,0,w,h);const board=tc.createLinearGradient(0,0,0,h);board.addColorStop(0,'#3c3365');board.addColorStop(1,'#232d50');tc.fillStyle=s.highContrast?'#000':board;tc.fillRect(0,0,w,h);
-    const colors=RR_GAME.palette(),target=h-52,laneW=w/4,size=Math.min(54*(s.scaleEnabled?s.arrowScale:1),laneW*.79),travel=3.2/rate/s.arrowSpeed;
-    for(let lane=0;lane<4;lane++){const x=(lane+.5)*laneW;tc.fillStyle=colors[lane]+'13';tc.fillRect(x-laneW/2+2,0,laneW-4,h);tc.strokeStyle='#ddd7ef33';tc.beginPath();tc.moveTo(x-laneW/2,0);tc.lineTo(x-laneW/2,h);tc.stroke();tutorialArrow(x,target,lane,size,colors[lane],false);tc.fillStyle='#e1e8ff';tc.font='bold 12px Trebuchet MS';tc.textAlign='center';tc.fillText(names[lane].toUpperCase(),x,h-17);}
+    tc.clearRect(0,0,w,h);const board=tc.createLinearGradient(0,0,0,h);board.addColorStop(0,'#58449ac9');board.addColorStop(1,'#2b638dc9');tc.fillStyle=s.highContrast?'#000':board;tc.fillRect(0,0,w,h);
+    const colors=RR_GAME.palette(),target=h-52,laneW=w/4,size=Math.min(69*(s.scaleEnabled?s.arrowScale:1),laneW*.79),travel=3.2/rate/s.arrowSpeed;
+    for(let lane=0;lane<4;lane++){const x=(lane+.5)*laneW;tc.fillStyle=colors[lane]+'32';tc.fillRect(x-laneW/2+2,0,laneW-4,h);tc.strokeStyle='#ddd7ef33';tc.beginPath();tc.moveTo(x-laneW/2,0);tc.lineTo(x-laneW/2,h);tc.stroke();tutorialArrow(x,target,lane,size,colors[lane],false);tc.fillStyle='#e1e8ff';tc.font='bold 12px Trebuchet MS';tc.textAlign='center';tc.fillText(names[lane].toUpperCase(),x,h-17);}
     const waiting=[3,4].includes(lesson)&&$('tutorialNext').disabled;
     if((lesson===2||waiting)&&!tutorialNote){const lane=lesson===2?Math.floor(lessonElapsed/4)%4:lesson===3?0:[0,1,2,3][tutorialHits];tutorialNote={lane,at:lessonElapsed+travel+.5};}
     if(tutorialNote){const n=tutorialNote,remaining=n.at-lessonElapsed,y=target-remaining*(target-20)/travel;

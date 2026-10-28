@@ -17,15 +17,15 @@
     const el = $('gameCaption'); if (!el || !preferences().captions) return;
     $('captionResult').textContent = text; captionUntil = performance.now() + seconds * 1000;
   }
-  let levelIndex = 0, level = LEVELS[0], bankedScore = 0, toysUnlocked = false;
-  let BPM, BEAT, SONG_BEATS, DURATION, COLORS, MELODY, BASS, CHART, MAX_POINTS, GOAL, FRAMES;
+  let levelIndex = 0, level = LEVELS[0], bankedScore = 0, toysUnlocked = false, unlockedThrough = 0;
+  let BPM, BEAT, SONG_BEATS, DURATION, COLORS, MELODY, BASS, CHART, MAX_POINTS, GOAL;
   function configureLevel(index) {
     levelIndex = index; level = LEVELS[index];
     runRate = RR_SETTINGS.rate(); runArrowSpeed = preferences().arrowSpeed;
     BPM = level.bpm; BEAT = 60 / BPM / runRate; SONG_BEATS = level.beats; DURATION = SONG_BEATS * BEAT;
-    COLORS = palette(); MELODY = level.melody; BASS = level.bass; FRAMES = level.frames;
+    COLORS = palette(); MELODY = level.melody; BASS = level.bass;
     CHART = [];
-    for (let beat = 4, n = 0; beat < 60; beat++) {
+    for (let beat = 4, n = 0; beat < SONG_BEATS - 4; beat++) {
       if (level.skipBeat(beat)) continue;
       CHART.push({ beat, lane: level.sequence[n++ % level.sequence.length], time: beat * BEAT });
     }
@@ -40,13 +40,9 @@
   const canvas = $('track'), ctx = canvas.getContext('2d');
   const dancer = $('pixelSprite'), danceCtx = dancer.getContext('2d');
   const imageAsset = url => RR_SPRITES.load(url);
-  const assets = LEVELS.map(l => ({ sprite: imageAsset(l.sprite), background: imageAsset(l.background) }));
+  const assets = LEVELS.map(l => ({ sprite: imageAsset(l.rig), background: imageAsset(l.background), rig: RR_CHOREO.load(l.rig) }));
   let sprite = assets[0].sprite.image;
-  const GROOVES = [
-    [0, 1, 2, 7, 0, 1, 2, 7, 4, 5, 2, 7, 0, 1, 2, 3],
-    [0, 1, 5, 7, 4, 5, 2, 3, 0, 1, 6, 3, 4, 5, 2, 7],
-    [0, 5, 6, 3, 4, 5, 6, 7, 0, 1, 6, 3, 4, 5, 6, 3]
-  ];
+  let danceModel = null;
   let dancerWidth = 600, dancerHeight = 500, spriteReady = false;
   let danceTime = 0, danceFrame = 0, danceLevel = 0, reaction = 0, reactionKind = 'perfect', reactionLane = 0;
   const danceSparks = [];
@@ -65,6 +61,7 @@
   try {
     best = Number(localStorage.getItem('robo-ritmado-best-v04')) || 0;
     toysUnlocked = localStorage.getItem('robo-ritmado-toys-unlocked') === 'true';
+    unlockedThrough = Math.max(toysUnlocked ? 1 : 0, Math.min(3, Number(localStorage.getItem('rr-worlds-v07')) || 0));
     offset = Math.max(-200, Math.min(200, Number(localStorage.getItem('pixel-offset')) || 0));
     const saved = localStorage.getItem('pixel-effects');
     if (saved !== null) soft = saved === 'soft';
@@ -74,13 +71,15 @@
   $('offsetValue').textContent = `${offset > 0 ? '+' : ''}${offset} ms`;
   function save(key, value) { try { localStorage.setItem(key, value); } catch {} }
   const formatTime = t => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
+  const worldButtons = ['worldCandy','worldToys','worldIce','worldSky'];
   function updateWorldButtons() {
-    $('worldCandy').disabled = settingsLocked();
-    $('worldToys').disabled = settingsLocked() || !toysUnlocked;
-    $('worldCandy').setAttribute('aria-current', levelIndex === 0 ? 'step' : 'false');
-    $('worldToys').setAttribute('aria-current', levelIndex === 1 ? 'step' : 'false');
-    $('toyLock').textContent = toysUnlocked ? '✦' : '🔒';
-    $('worldToys').title = toysUnlocked ? 'Treinar em Brinquedolândia (novo placar)' : 'Faça 2.600 pontos no Reino dos Doces e conclua a música';
+    worldButtons.forEach((id,i)=>{
+      const button=$(id),locked=i>unlockedThrough;
+      button.disabled=settingsLocked()||locked;
+      button.setAttribute('aria-current',levelIndex===i?'step':'false');
+      button.title=locked?'Conclua o mundo anterior e carregue o portal.':'Ensaiar em '+LEVELS[i].name+' (novo placar)';
+      const lock=button.querySelector('small');if(lock)lock.textContent=locked?'🔒':'✦';
+    });
   }
   function updateLevelUI() {
     document.body.dataset.theme = level.id;
@@ -89,14 +88,18 @@
     $('chapterLabel').textContent = `FASE 0${levelIndex + 1} · ${levelIndex ? 'O SHOW CONTINUA' : 'PRIMEIRA PARADA'}`;
     $('levelTitle').textContent = level.title; $('levelEm').textContent = level.emphasis;
     $('levelSubtitle').textContent = level.subtitle;
-    $('trackName').textContent = levelIndex ? 'PISTA DAS ESTRELAS' : 'PISTA DE CRISTAL';
+    $('trackName').textContent = level.track;
+    document.querySelectorAll('.track-crown span').forEach(el=>el.textContent=level.ornament);
+    $('danceStyle').textContent=RR_CHOREO.definitions[level.id].style;
+    $('dancePhrase').textContent=RR_CHOREO.definitions[level.id].name;
     $('tempoLabel').textContent = `${Math.round(BPM * runRate)} BPM · ${runRate < 1 ? Math.round(runRate * 100) + '% DO RITMO' : levelIndex ? 'NOVO RITMO' : 'FÁCIL'}`;
     $('songName').textContent = level.song; $('songDescription').textContent = `${level.style} · ${Math.round(BPM * runRate)} BPM`;
     $('time').textContent = `0:00 / ${formatTime(Math.ceil(DURATION))}`;
     $('songFill').style.width = '0%';
     document.querySelector('.song-progress').setAttribute('aria-valuenow', '0');
-    $('introTitle').innerHTML = levelIndex ? 'Um mundo de estrelas.<br>Um novo <em>ritmo!</em>' : 'O caminho de casa<br>começa no <em>ritmo.</em>';
-    $('introCopy').innerHTML = levelIndex ? `O traje mudou. A música também!<br>${bankedScore ? bankedScore.toLocaleString('pt-BR') + ' pontos vieram com você.' : 'Vamos tocar em Brinquedolândia?'}` : 'Pixel se perdeu entre os mundos.<br>Toque na batida e carregue o portal!';
+    const greetings={doces:'O caminho de casa<br>começa no <em>ritmo.</em>',brinquedos:'Todo mundo no<br><em>desfile de estrelas!</em>',gelo:'Pés leves na neve.<br>Vamos <em>valsar?</em>',ceu:'Lá no alto, a música<br><em>abraça as nuvens!</em>'};
+    $('introTitle').innerHTML = greetings[level.id];
+    $('introCopy').innerHTML = levelIndex ? `O traje mudou. A música também!<br>${bankedScore ? bankedScore.toLocaleString('pt-BR') + ' pontos vieram com você.' : 'Vamos tocar em '+level.name+'?'}` : 'Pixel se perdeu entre os mundos.<br>Toque na batida e carregue o portal!';
     $('introDetail').textContent = `${Math.ceil(DURATION)} segundos de música · Meta: ${GOAL.toLocaleString('pt-BR')} pontos`;
     $('pixelArt').setAttribute('aria-label', `Pixel dançando com a guitarra e o traje de ${level.name}`);
     document.querySelector('.stage').setAttribute('aria-label', `Jogo de ritmo em ${level.name}`);
@@ -105,10 +108,10 @@
   async function showLevel(index, carry = 0) {
     const token = ++generation;
     state = 'loading'; spriteReady = false; dancer.style.visibility = 'hidden'; updateWorldButtons(); clearInterval(scheduler); stopVoices();
-    await Promise.all([assets[index].sprite.ready, assets[index].background.ready]);
+    await Promise.all([assets[index].sprite.ready, assets[index].background.ready, assets[index].rig.ready]);
     if (token !== generation) return;
     configureLevel(index); bankedScore = carry; sprite = assets[index].sprite.image;
-    RR_SPRITES.validate(sprite, FRAMES);
+    RR_SPRITES.validate(sprite, assets[index].rig.parts);
     danceTime = 0; danceFrame = 0; danceLevel = 0; reaction = 0;
     score = 0; combo = 0; maxCombo = 0; notes = []; particles = []; rings = []; danceSparks.length = 0;
     stats = { perfect: 0, good: 0, near: 0, miss: 0 }; reaction = 0;
@@ -122,13 +125,14 @@
     resize(); resizeDancer(); spriteReady = true; dancer.style.visibility = 'visible';
   }
   async function selectWorld(index) {
-    if (settingsLocked() || (index === 1 && !toysUnlocked)) return;
+    if (settingsLocked() || index > unlockedThrough) return;
     try { await showLevel(index, 0); }
     catch (error) { state = 'ready'; $('spriteStatus').hidden = false; $('spriteStatus').textContent = error.message; updateWorldButtons(); }
   }
   async function travel() {
-    if (levelIndex !== 0 || state !== 'results' || score < GOAL) return;
-    const carry = bankedScore + score;
+    if (levelIndex >= LEVELS.length-1 || state !== 'results' || score < GOAL) return;
+    const next = levelIndex + 1, carry = bankedScore + score;
+    $('travelDestination').textContent = LEVELS[next].name+'!';
     state = 'transition'; updateWorldButtons(); $('nextStage').disabled = true;
     $('travelOverlay').hidden = false; $('retryTravel').hidden = true;
     $('travelSummary').textContent = `${carry.toLocaleString('pt-BR')} pontos viajam com você.`;
@@ -137,11 +141,11 @@
       if (audio && audio.state === 'running') {
         [72,76,79,84,88].forEach((n, i) => tone(n, audio.currentTime + i * .09, .5, .055, 'sine'));
       }
-      await Promise.all([assets[1].sprite.ready, assets[1].background.ready,
+      await Promise.all([assets[next].sprite.ready, assets[next].background.ready, assets[next].rig.ready,
         new Promise(resolve => setTimeout(resolve, RR_SETTINGS.gentle() ? 250 : 2200))]);
-      await showLevel(1, carry);
+      await showLevel(next, carry);
       $('travelOverlay').hidden = true;
-      $('announcer').textContent = 'Bem-vindo a Brinquedolândia. Seus pontos foram preservados. Clique em Vamos tocar para ouvir a nova música.';
+      $('announcer').textContent = 'Bem-vindo a '+level.name+'. Seus pontos foram preservados. Clique em Vamos tocar para ouvir a nova música.';
       $('start').focus({ preventScroll: true });
     } catch (error) {
       state = 'results'; $('nextStage').disabled = false; updateWorldButtons();
@@ -177,97 +181,33 @@
     danceCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
   new ResizeObserver(resizeDancer).observe(dancer);
-  function drawDancer(dt, isSongRunning) {
-    const noDance = reducedMotion || preferences().sensitivity;
-    danceCtx.clearRect(0, 0, dancerWidth, dancerHeight);
-    if (!spriteReady) return;
-    if (state !== 'paused') {
-      danceTime = isSongRunning && RR_SETTINGS.motion() === 1 ? clock() : danceTime + dt * RR_SETTINGS.motion();
-      reaction = Math.max(0, reaction - dt);
+  function drawDancer(dt,isSongRunning) {
+    danceCtx.clearRect(0,0,dancerWidth,dancerHeight);
+    if(!spriteReady||!assets[levelIndex].rig.parts)return;
+    const still=reducedMotion||preferences().sensitivity;
+    if(state!=='paused') {
+      if(isSongRunning&&RR_SETTINGS.motion()===1) danceTime=Math.max(0,clock());
+      else if(!['countdown','ready'].includes(state)) danceTime+=dt*RR_SETTINGS.motion();
+      reaction=Math.max(0,reaction-dt);
     }
-    const scoredLevel = score >= GOAL * .7 ? 2 : score >= GOAL * .25 ? 1 : 0;
-    danceLevel = Math.max(scoredLevel, combo >= 8 ? 2 : combo >= 4 ? 1 : 0);
-    const phase = danceTime / BEAT;
-    const cycle = ((Math.floor(phase * 2) % 16) + 16) % 16;
-    danceFrame = noDance || state === 'countdown' || state === 'ready' ? 0 : GROOVES[danceLevel][cycle];
-    if (!noDance && reaction > .18 && ['playing', 'paused'].includes(state)) {
-      if (reactionKind === 'perfect' || reactionKind === 'good') danceFrame = [1, 4, 6, 3][reactionLane];
-      else if (reactionKind === 'near') danceFrame = 7;
+    const beat=still?0:danceTime/BEAT,progress=Math.max(0,Math.min(1,danceTime/DURATION));
+    danceFrame=0;danceLevel=Math.min(3,Math.floor(progress*4));
+    const center=dancerWidth*.5,floor=dancerHeight*.95;
+    const h=Math.min(dancerHeight*.96,dancerWidth*1.47);
+    danceCtx.fillStyle='#20173840';danceCtx.beginPath();danceCtx.ellipse(center,floor, h*.19,h*.018,0,0,Math.PI*2);danceCtx.fill();
+    if(!soft&&!still){
+      danceCtx.save();danceCtx.globalAlpha=.45;danceCtx.strokeStyle=level.accent;danceCtx.lineWidth=2;
+      danceCtx.beginPath();danceCtx.ellipse(center,floor-h*.02,h*.24,h*.035,0,0,Math.PI*2);danceCtx.stroke();danceCtx.restore();
     }
-    const [sx, sy, sw, sh] = FRAMES[danceFrame] || FRAMES[0];
-    if (!sprite.complete || !sprite.naturalWidth || sx + sw > sprite.naturalWidth || sy + sh > sprite.naturalHeight) return;
-    const scale = Math.min(dancerWidth * .9 / (level.designWidth || 440), dancerHeight * .94 / (level.designHeight || 552));
-    const motion = soft ? .2 : 1;
-    const sway = Math.sin(phase * Math.PI), spring = Math.abs(Math.sin(phase * Math.PI * 2));
-    const power = (1 + danceLevel * .38) * motion;
-    const hop = noDance ? 0 : spring * (4 + danceLevel * 3) * scale * motion;
-    const center = dancerWidth * .52 + (noDance ? 0 : sway * 12 * scale * power);
-    const floor = dancerHeight * .965;
-    const reactionPower = reaction > 0 ? Math.sin(Math.min(1, reaction / .42) * Math.PI) : 0;
-    const lift = !noDance && reactionKind === 'perfect' ? reactionPower * 12 * scale * motion : 0;
-    // A floor contact shadow is drawn separately; the sprite background stays empty.
-    danceCtx.save();
-    danceCtx.fillStyle = '#34114b35'; danceCtx.beginPath();
-    danceCtx.ellipse(dancerWidth * .52, floor - 3, 114 * scale, 12 * scale, 0, 0, Math.PI * 2); danceCtx.fill();
-    danceCtx.restore();
-    const glowY = floor - 220 * scale;
-    const beatGlow = noDance ? .2 : .4 + spring * .25;
-    const aura = danceCtx.createRadialGradient(center, glowY, 12 * scale, center, glowY, 225 * scale);
-    aura.addColorStop(0, level.accent + (soft ? '12' : '2b')); aura.addColorStop(1, level.accent + '00');
-    danceCtx.fillStyle = aura; danceCtx.fillRect(center - 240 * scale, glowY - 240 * scale, 480 * scale, 480 * scale);
-    if (!soft && !noDance) {
-      danceCtx.save(); danceCtx.shadowBlur = 13; danceCtx.lineWidth = 2 * scale;
-      for (let arc = 0; arc < 3; arc++) {
-        danceCtx.strokeStyle = COLORS[(arc + danceLevel) % 4] + 'a0';
-        danceCtx.shadowColor = COLORS[(arc + danceLevel) % 4];
-        danceCtx.beginPath();
-        danceCtx.ellipse(center, floor - (22 + arc * 5) * scale, (130 + arc * 15 + spring * 8) * scale,
-          (15 + arc * 5) * scale, -.12, visualTime * .5 + arc, visualTime * .5 + arc + Math.PI * 1.25);
-        danceCtx.stroke();
-      }
-      danceCtx.restore();
+    danceModel=RR_CHOREO.draw(danceCtx,assets[levelIndex].rig,{id:level.id,beat,progress,x:center,floor,height:h,still});
+    const phrase=danceModel?.phrase||'';if($('dancePhrase').textContent!==phrase)$('dancePhrase').textContent=phrase;
+    if(state!=='paused')for(const p of danceSparks){p.age+=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;}
+    if(!soft&&!still)for(const p of danceSparks){
+      danceCtx.globalAlpha=Math.max(0,1-p.age/p.life)*.7;danceCtx.fillStyle=p.color;
+      danceCtx.font=`${p.size}px Trebuchet MS`;danceCtx.fillText(p.symbol,center+p.x*h/510,floor-h*.5+p.y*h/510);
     }
-    danceCtx.save();
-    if (!soft && reaction > 0 && reactionKind !== 'miss') {
-      danceCtx.shadowColor = JCOLORS[reactionKind]; danceCtx.shadowBlur = 12 * reactionPower;
-    }
-    // Draw each transparent pose once to avoid alpha seams. Authored arm/leg
-    // changes provide the dance, with a continuous foot-pivot sway between poses.
-    danceCtx.translate(center, floor - hop - lift);
-    danceCtx.rotate(noDance ? 0 : sway * .018 * power);
-    danceCtx.drawImage(sprite, sx, sy, sw, sh, -sw * scale / 2, -sh * scale, sw * scale, sh * scale);
-    danceCtx.restore();
-    if (reaction > 0 && reactionKind !== 'miss' && !soft && !noDance) {
-      const progress = 1 - reaction / .42, radius = (25 + progress * 120) * scale;
-      danceCtx.save(); danceCtx.globalAlpha = (1 - progress) * .8;
-      danceCtx.strokeStyle = COLORS[reactionLane]; danceCtx.lineWidth = (4 - progress * 3) * scale;
-      danceCtx.shadowColor = COLORS[reactionLane]; danceCtx.shadowBlur = 20;
-      danceCtx.beginPath(); danceCtx.arc(center - 40 * scale, floor - 240 * scale, radius, 0, Math.PI * 2); danceCtx.stroke();
-      danceCtx.restore();
-    }
-    if (state !== 'paused') {
-      for (const spark of danceSparks) { spark.age += dt; spark.x += spark.vx * dt; spark.y += spark.vy * dt; spark.vy += dt * 70; }
-    }
-    for (const spark of danceSparks) {
-      danceCtx.globalAlpha = Math.max(0, 1 - spark.age / spark.life);
-      danceCtx.fillStyle = spark.color; danceCtx.font = `${spark.size}px Segoe UI, Arial`;
-      danceCtx.fillText(spark.symbol, center + spark.x * scale, floor - 240 * scale + spark.y * scale);
-    }
-    danceCtx.globalAlpha = 1;
-    for (let i = danceSparks.length - 1; i >= 0; i--) if (danceSparks[i].age >= danceSparks[i].life) danceSparks.splice(i, 1);
-    if (!soft && !noDance) {
-      // Low-intensity musical sparkles continue during idle and gameplay.
-      for (let i = 0; i < 9; i++) {
-        const p = ((danceTime * .24 + i / 9) % 1 + 1) % 1;
-        const x = center + Math.sin(i * 2.4 + p * 2) * (170 + i * 9) * scale;
-        const y = floor - (50 + p * 420) * scale;
-        danceCtx.globalAlpha = Math.sin(p * Math.PI) * beatGlow;
-        danceCtx.fillStyle = COLORS[i % 4];
-        danceCtx.font = `${(16 + i % 3 * 5) * scale}px Segoe UI, Arial`;
-        danceCtx.fillText(i % 3 ? level.ornament : '♫', x, y);
-      }
-      danceCtx.globalAlpha = 1;
-    }
+    danceCtx.globalAlpha=1;
+    for(let i=danceSparks.length-1;i>=0;i--)if(danceSparks[i].age>=danceSparks[i].life)danceSparks.splice(i,1);
   }
   const hz = midi => 440 * 2 ** ((midi - 69) / 12);
   function tone(midi, when, duration, level = .09, type = 'triangle', destination = master) {
@@ -311,36 +251,39 @@
         if (beat < 0) {
           if (step % 2 === 0) tone(beat === -1 ? 84 : 79, when, .08, .08, 'sine');
         } else {
-          const bar = Math.floor(beat / 4), chord = Math.floor(bar / 2) % 4;
-          if (!levelIndex || step % 2) percussion(when);
-          if (step % 2 === 0) {
-            const b = Math.floor(beat);
-            if (b % 2 === 0) kick(when);
-            else if (levelIndex) {
-              // Short wood-blocks and a tiny rattle make a toy marching rhythm.
-              tone(b % 4 === 1 ? 88 : 83, when, .055, .095, 'triangle');
-              percussion(when + .025);
-            } else percussion(when, true);
-            tone(BASS[chord] + (b % 4 === 2 ? 12 : 0), when, levelIndex ? .20 : .38, levelIndex ? .11 : .19, levelIndex ? 'triangle' : 'sine');
-            const melody = MELODY[b % MELODY.length];
-            if (levelIndex) {
-              // Music-box attack with bell overtones, distinct from candy's soft lead.
-              tone(melody, when, .34, .12, 'sine');
-              tone(melody + 12, when, .16, .036, 'sine');
-              tone(melody + 19, when, .07, .014, 'sine');
-            } else {
-              tone(melody, when, .28, .095, 'triangle');
-              tone(melody + 12, when, .17, .021, 'sine');
+          const meter=level.meter,bar=Math.floor(beat/meter),chord=Math.floor(bar/2)%4;
+          const kind=level.instrument,ice=kind==='ice',sky=kind==='sky';
+          if(step%2===0){
+            const b=Math.floor(beat),within=b%meter,root=BASS[chord],m=MELODY[b%MELODY.length];
+            if(ice){
+              if(within===0)tone(root,when,.85,.105,'sine');
+              else [root+12,root+(chord===0?15:16),root+19].forEach(n=>tone(n,when,.34,.023,'triangle'));
+              tone(m,when,.65,.085,'triangle');tone(m+12,when,.42,.022,'sine');
+              if(within===0)tone(m+24,when,1.2,.013,'sine');
+            }else if(sky){
+              const arp=[0,7,12,16][within];tone(root+12+arp,when,.75,.07,'sine');
+              tone(m,when,.9,.07,'sine');tone(m+12,when,.5,.016,'triangle');
+              if(within===0)tone(root,when,1.7,.11,'sine');
+              if(within===2)percussion(when);
+            }else if(kind==='toy'){
+              if(within===0||within===2)kick(when);
+              else {tone(within===1?88:83,when,.055,.075,'triangle');percussion(when+.025);}
+              tone(root+(within===2?12:0),when,.19,.10,'triangle');
+              tone(m,when,.34,.11,'sine');tone(m+12,when,.15,.028,'sine');tone(m+19,when,.07,.012,'sine');
+            }else{
+              if(within%2===0)kick(when);else percussion(when,true);
+              tone(root,when,.38,.16,'sine');tone(m,when,.28,.095,'triangle');tone(m+12,when,.19,.022,'sine');
             }
-            if (b % 4 === 0) {
-              const root = BASS[chord] + 12;
-              [root, root + (chord === level.minorChord ? 3 : 4), root + 7].forEach(n => tone(n, when, levelIndex ? .42 : 1.5, .025, 'triangle'));
+            if(within===0){
+              const third=(ice?(chord===0||chord===2):(chord===level.minorChord))?3:4;
+              [root+12,root+12+third,root+19].forEach(n=>tone(n,when,ice?1.7:sky?2.1:kind==='toy'?.4:1.4,sky?.018:.02,'triangle'));
             }
-            // A bell accents every playable note at exactly its chart timestamp.
-            const note = CHART.find(n => n.beat === beat);
-            if (note) tone((levelIndex ? [86,81,90,88] : [84,79,88,86])[note.lane], when, .14, .052, 'sine');
-          } else if (beat >= 16) {
-            tone(MELODY[Math.floor(beat) % MELODY.length] + (levelIndex ? 0 : 12), when, .13, levelIndex ? .043 : .023, levelIndex ? 'triangle' : 'sine');
+            const note=CHART.find(n=>n.beat===beat);
+            if(note)tone(MELODY[(b+note.lane)%MELODY.length]+12,when,.12,.023,'sine');
+          }else if(beat>=16){
+            if(kind==='candy'||kind==='toy')percussion(when);
+            if(sky)tone(BASS[chord]+[19,24,28,31][Math.floor(beat)%4],when,.45,.025,'sine');
+            else if(!ice)tone(MELODY[Math.floor(beat)%MELODY.length]+(kind==='candy'?12:0),when,.12,.025,'sine');
           }
         }
       }
@@ -383,7 +326,7 @@
     const token = ++generation;
     clearInterval(scheduler); stopVoices();
     try {
-      await Promise.all([assets[levelIndex].sprite.ready, assets[levelIndex].background.ready]);
+      await Promise.all([assets[levelIndex].sprite.ready, assets[levelIndex].background.ready, assets[levelIndex].rig.ready]);
       await prepareAudio();
       if (token !== generation) return;
       configureLevel(levelIndex); updateLevelUI();
@@ -506,20 +449,22 @@
     $('stars').textContent = '✦'.repeat(stars) + '✧'.repeat(3 - stars);
     $('stars').setAttribute('aria-label', `${stars} de 3 estrelas`);
     const charged = score >= GOAL;
-    if (charged) $('energyHint').textContent = levelIndex ? 'Show concluído! Veja o seu resultado.' : 'Portal aberto para Brinquedolândia!';
-    if (charged && levelIndex === 0) { toysUnlocked = true; save('robo-ritmado-toys-unlocked', 'true'); }
-    $('resultPill').textContent = levelIndex ? '✦ SEGUNDA VIAGEM CONCLUÍDA' : '✦ PRIMEIRA VIAGEM CONCLUÍDA';
+    const hasNext=levelIndex<LEVELS.length-1;
+    if(charged)$('energyHint').textContent=hasNext?'Portal aberto para '+LEVELS[levelIndex+1].name+'!':'Quatro mundos no nosso ritmo!';
+    if(charged&&hasNext){unlockedThrough=Math.max(unlockedThrough,levelIndex+1);toysUnlocked=true;save('rr-worlds-v07',unlockedThrough);save('robo-ritmado-toys-unlocked','true');}
+    $('resultPill').textContent='✦ VIAGEM '+(levelIndex+1)+' CONCLUÍDA';
     $('resultTitle').textContent = charged ? (levelIndex ? 'Que grande show!' : 'O portal despertou!') : score ? 'Você fez música!' : 'Vamos tentar juntos?';
-    $('resultMessage').textContent = charged ? (levelIndex ? 'Dois mundos, uma grande aventura com Pixel!' : 'Brinquedolândia espera por você!') : `Meta: ${GOAL.toLocaleString('pt-BR')} pontos. Vamos ensaiar mais uma vez?`;
+    $('resultMessage').textContent = charged ? (hasNext?LEVELS[levelIndex+1].name+' espera por você!':'Quatro mundos! Pixel está mais perto de casa!') : `Meta: ${GOAL.toLocaleString('pt-BR')} pontos. Vamos ensaiar mais uma vez?`;
     $('resultDetail').textContent = `Combo: ${maxCombo} · Precisão: ${accuracy}% · Total: ${(bankedScore + score).toLocaleString('pt-BR')}`;
-    $('nextStage').hidden = !(charged && levelIndex === 0);
-    $('playAgain').classList.toggle('replay-secondary', charged && levelIndex === 0);
-    $('resultHint').textContent = levelIndex ? `Você trouxe ${bankedScore.toLocaleString('pt-BR')} pontos do mundo anterior.` : charged ? 'Seus pontos seguem com você pelo portal.' : `Faltaram ${Math.max(0, GOAL - score).toLocaleString('pt-BR')} pontos para abrir o portal.`;
+    $('nextStage').hidden = !(charged && hasNext);
+    if(hasNext)$('nextStage').innerHTML='Viajar para '+LEVELS[levelIndex+1].name+' <span>✦</span>';
+    $('playAgain').classList.toggle('replay-secondary', charged && hasNext);
+    $('resultHint').textContent = bankedScore ? `Você trouxe ${bankedScore.toLocaleString('pt-BR')} pontos dos mundos anteriores.` : charged ? 'Seus pontos seguem com você pelo portal.' : `Faltaram ${Math.max(0, GOAL - score).toLocaleString('pt-BR')} pontos para abrir o portal.`;
     $('pixelMessage').textContent = charged ? 'Conseguimos! Olha o nosso portal!' : 'Adorei tocar com você. Mais uma?';
     if (bankedScore + score > best) { best = bankedScore + score; save('robo-ritmado-best-v04', best); $('best').textContent = String(best).padStart(5, '0'); }
     $('announcer').textContent = `Viagem concluída! ${score} pontos e ${stars} estrelas. Maior combo: ${maxCombo}.`;
     updateWorldButtons();
-    (charged && levelIndex === 0 ? $('nextStage') : $('playAgain')).focus({ preventScroll: true });
+    (charged && hasNext ? $('nextStage') : $('playAgain')).focus({ preventScroll: true });
   }
   function laneX(lane) { return width * .16 + lane * width * .2266667; }
   function targetY() { return height - 67; }
@@ -545,8 +490,11 @@
     ctx.fillStyle = filled ? (preferences().highContrast ? color : fill) : (preferences().highContrast ? '#000000' : '#19152ed9'); ctx.fill(); ctx.strokeStyle = filled ? '#fff3ffdd' : color; ctx.stroke();
     if (filled && !soft && !preferences().highContrast) {
       ctx.save(); ctx.clip(); ctx.shadowBlur = 0;
-      if (levelIndex) {
-        ctx.fillStyle = '#ffffffb0'; starPath(ctx, 0, 0, size * .105, visualTime * .7); ctx.fill();
+      if (level.id!=='doces') {
+        ctx.fillStyle = '#ffffffb0';
+        if(level.id==='gelo'){for(let a=0;a<6;a++){ctx.save();ctx.rotate(a*Math.PI/3);ctx.fillRect(-1,-size*.15,2,size*.3);ctx.restore();}}
+        else if(level.id==='ceu'){ctx.beginPath();[[0,-.16],[.04,-.04],[.16,0],[.04,.04],[0,.16],[-.04,.04],[-.16,0],[-.04,-.04]].forEach(([x,y],i)=>i?ctx.lineTo(x*size,y*size):ctx.moveTo(x*size,y*size));ctx.closePath();ctx.fill();}
+        else{starPath(ctx,0,0,size*.105,visualTime*.7);ctx.fill();}
         ctx.fillStyle = '#ffffff75';
         for (const dx of [-.3, -.15]) { ctx.beginPath(); ctx.arc(dx * size, 0, size * .035, 0, Math.PI * 2); ctx.fill(); }
       } else {
@@ -602,9 +550,9 @@
     }
     drawDancer(dt, active);
     ctx.clearRect(0, 0, width, height);
-    const target = targetY(), laneWidth = width * .2266667, size = Math.min(56 * (preferences().scaleEnabled ? preferences().arrowScale : 1), laneWidth * .88);
+    const target = targetY(), laneWidth = width * .2266667, size = Math.min(78 * (preferences().scaleEnabled ? preferences().arrowScale : 1), laneWidth * .88);
     const bg = ctx.createLinearGradient(0, 0, 0, height);
-    bg.addColorStop(0, preferences().highContrast ? '#000000' : levelIndex ? '#10265fe3' : '#31143fe0'); bg.addColorStop(1, preferences().highContrast ? '#000000' : levelIndex ? '#25224bc9' : '#351535cb'); ctx.fillStyle = bg; ctx.fillRect(0, 0, width, height);
+    bg.addColorStop(0, preferences().highContrast ? '#000000' : level.panel[0]); bg.addColorStop(1, preferences().highContrast ? '#000000' : level.panel[1]); ctx.fillStyle = bg; ctx.fillRect(0, 0, width, height);
     // Lanes carry a subtle stable color so the hit line remains readable.
     for (let lane = 0; lane < 4; lane++) {
       const x = laneX(lane);
@@ -626,7 +574,7 @@
         ctx.save(); ctx.fillStyle = COLORS[(i + side) % 4];
         ctx.globalAlpha = soft ? .55 : .5 + Math.sin(visualTime * 3 + i * .6) * .22;
         ctx.shadowColor = ctx.fillStyle; ctx.shadowBlur = soft ? 0 : 9;
-        if (levelIndex) { starPath(ctx, x, y, 3.6, i * .2); ctx.fill(); }
+        if (level.id!=='doces') { starPath(ctx, x, y, 3.6, i * .2); ctx.fill(); }
         else { ctx.beginPath(); ctx.arc(x, y, 2.8, 0, Math.PI * 2); ctx.fill(); }
         ctx.restore();
       }
@@ -656,7 +604,7 @@
         ctx.beginPath(); ctx.arc(laneX(lane), target, size * (.65 + pulse * .08), 0, Math.PI * 2); ctx.stroke(); ctx.restore();
       }
       arrow(laneX(lane), target, lane, size + (flashes[lane] > .1 ? 4 : 0), COLORS[lane], false, soft ? 0 : 7);
-      ctx.font = '9px Segoe UI, Arial'; ctx.fillStyle = '#c2b0d3'; ctx.textAlign = 'center';
+      ctx.font = 'bold 12px Trebuchet MS, Arial'; ctx.fillStyle = '#c2b0d3'; ctx.textAlign = 'center';
       ctx.fillText(DIRECTIONS[lane].toUpperCase(), laneX(lane), target + 44);
     }
     for (const note of notes) {
@@ -714,10 +662,9 @@
   $('start').addEventListener('click', start);
   $('nextStage').addEventListener('click', travel);
   $('retryTravel').addEventListener('click', () => {
-    assets[1] = { sprite: imageAsset(LEVELS[1].sprite), background: imageAsset(LEVELS[1].background) }; travel();
+    travel();
   });
-  $('worldCandy').addEventListener('click', () => selectWorld(0));
-  $('worldToys').addEventListener('click', () => selectWorld(1));
+  worldButtons.forEach((id,i)=>$(id).addEventListener('click',()=>selectWorld(i)));
   $('playAgain').addEventListener('click', start);
   $('restartPause').addEventListener('click', start);
   $('resume').addEventListener('click', resume);
@@ -764,15 +711,16 @@
   // Gameplay has no autoplay or score-writing test hooks.
   Object.defineProperty(window, 'pixelDiagnostics', { value: Object.freeze({
     snapshot: () => ({ state, rate: runRate, arrowSpeed: runArrowSpeed, palette: [...COLORS], level: levelIndex + 1, world: level.id, bpm: BPM, song: level.song,
-      duration: DURATION, sprite: level.sprite, background: level.background, musicSignature: MELODY.join(',') + '/' + BASS.join(','),
-      bankedScore, totalScore: bankedScore + score, unlocked: toysUnlocked,
+      duration: DURATION, sprite: level.rig, choreography: danceModel, instrument: level.instrument, meter: level.meter, background: level.background, musicSignature: MELODY.join(',') + '/' + BASS.join(','),
+      bankedScore, totalScore: bankedScore + score, unlocked: toysUnlocked, unlockedThrough,
       effects: { trackParticles: particles.length, rings: rings.length, dancerParticles: danceSparks.length, reduced: soft },
       time: audio ? clock() : null, chartTime: audio ? chartTime() : null,
       score, combo, maxCombo, stats: { ...stats }, totalNotes: CHART.length, maxPoints: MAX_POINTS,
       goal: GOAL, offset, audioState: audio?.state || 'not-started',
       dancer: { ready: spriteReady, frame: danceFrame, level: danceLevel, time: danceTime,
         reaction: reactionKind, reactionRemaining: reaction, width: dancerWidth, height: dancerHeight,
-        sourceWidth: sprite.naturalWidth, sourceHeight: sprite.naturalHeight, sourceRect: [...(FRAMES[danceFrame] || FRAMES[0])],
+        sourceWidth: sprite.naturalWidth, sourceHeight: sprite.naturalHeight, sourceRect: [...(assets[levelIndex].rig.parts?.[0]||[0,0,1,1])],
+        sourceRects: assets[levelIndex].rig.parts?.map(r=>[...r])||[],
         visible: dancer.style.visibility !== 'hidden' },
       notes: notes.map(n => ({ lane: n.lane, time: n.time, result: n.result })) }),
     audioLevel: () => {

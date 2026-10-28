@@ -1,128 +1,81 @@
-# Robô Ritmado — versão 0.6 · Vamos brincar com Pixel!
+# Robô Ritmado — versão 0.7 · Quatro mundos no seu ritmo!
 
-Abra `index.html` no Chrome ou Edge. No Windows, `Abrir-jogo.cmd` também abre o jogo no navegador padrão. Não é necessário instalar pacotes nem ter internet. Ao compartilhar, extraia o ZIP e mantenha a pasta completa.
+Uma aventura musical com Pixel para crianças de 5 a 11 anos. Abra **Abrir-jogo.cmd** ou **index.html** no Chrome/Edge. Não há instalação, servidor obrigatório ou dependência de internet. Ao compartilhar o ZIP, extraia a pasta completa antes de abrir.
 
-## Novidades da versão 0.6
+## O que mudou
 
-Interface revisada para crianças de **5 a 11 anos**: botões maiores com cores de brinquedo, acabamentos arredondados, instruções mais curtas, balões de conversa, estrelas no tutorial e pequenas comemorações. O botão **Oi, Pixel!** faz o personagem responder ao jogador. As abas de configuração e os painéis das fases também ganharam o novo acabamento.
+Todos os layouts receberam uma nova direção: cores de brinquedo na paleta rosa, lilás, violeta, azul e ciano de Pixel; títulos arredondados, botões em relevo, balões e retornos sonoros próprios. A pista ocupa **65% da área de jogo no computador**, com setas maiores, fundo translúcido e decoração por mundo. Pixel ocupa o espaço separado à direita.
 
-O prólogo tem **dez cenas animadas**: apresentação em OrbitHop, acorde, portal instável, sucção de Pixel, túnel interdimensional, portal nos Doces, queda e aterrissagem, levantar e limpar a roupa, pegar a guitarra e descoberta do caminho de casa. Os balões exibem falas de Pixel e respostas musicais da guitarra; uma faixa separada descreve as ações.
+Os cinco cenários foram refeitos: OrbitHop e os quatro mundos. Formas grandes e detalhes concentrados à esquerda mantêm a identidade dos locais; atrás de Pixel há áreas tranquilas, com contraste para destacar cabelo, visor e roupa. Os trajes também foram simplificados, com grandes blocos de cor, um emblema temático e menos acessórios. Os arquivos antigos estão preservados.
 
-A fase 1 usa uma nova folha de dança em células isoladas. O carregamento aguarda a decodificação da imagem e a preparação da área de desenho, valida os recortes e reinicia a pose antes de mostrar Pixel. A saída da cutscene começa com a pose completa, sem reutilizar um quadro antigo da dança.
+**Castelo Invernal e Paraíso são fases jogáveis novas**, com mapas de notas, metas, trajes, trilhas e coreografias próprios.
 
-O restante do planejamento continua pausado. Esta versão refina as interfaces existentes e a abertura, sem acrescentar outra fase.
+## Quatro viagens
 
-## Menu e introdução
+| Ordem | Mundo | Música / atmosfera | Dança | Ritmo | Notas | Meta |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 | Reino dos Doces | Doce Travessia · pop, sinos e marimba | Passinho de açúcar · balanço e step-touch | 90 BPM · 4 tempos · 43 s | 46 | 2.600 |
+| 2 | Brinquedolândia | Desfile dos Brinquedos · caixa de música e madeira | Marcha e robô de mola | 104 BPM · 4 tempos · 37 s | 53 | 3.000 |
+| 3 | Castelo Invernal | Valsa dos Cristais · piano de gelo e cordas | Ballet estilizado · plié, tendu, arabesque e reverência | 84 BPM · 3 tempos · 52 s | 59 | 3.300 |
+| 4 | Paraíso | Órbita das Nuvens · harpa e sinos aéreos | Contemporâneo · ondas e extensões | 96 BPM · 4 tempos · 40 s | 49 | 2.700 |
 
-A primeira tela é o **Aviso de Fotossensibilidade e Epilepsia**, sem animação nem som. Ela oferece acesso direto à aba Acessibilidade e um botão para fechar o aviso. O aviso reaparece ao abrir/recarregar o jogo; suas preferências permanecem salvas.
+Tempos aproximados em velocidade normal, sem a contagem inicial. Cada trilha tem melodia, harmonia e arranjo próprios, sintetizados no navegador. O menu mantém **Órbita de Casa**, composição separada em 78 BPM.
 
-O menu se passa em **OrbitHop**, planeta natal de Pixel, com o outfit padrão, guitarra estrela, notas e guitarras virtuais, trilhas orbitais e movimento lento do personagem. A música original do menu, **Órbita de Casa**, usa sintetizadores em 78 BPM e composição diferente das duas fases. O áudio começa após uma interação, conforme permitido pelo navegador.
+## Como jogar
 
-- **Jogar:** prólogo animado em dez cenas. Pixel usa a guitarra para abrir um portal, é sugado, chega ao Reino dos Doces, cai, se levanta e recupera a guitarra. A aventura começa com contagem inicial. A cena pode ser pausada, avançada ou pulada; as falas estão sempre visíveis.
-- **Tutorial:** seis etapas com Pixel, demonstração e prática. O jogador experimenta as quatro direções, observa uma nota, acerta uma nota e toca uma pequena sequência. As tentativas se repetem até aprender; os pontos do ensaio não entram na campanha. Ao concluir, o botão Jogar a aventura inicia a história.
-- **Opções:** quatro barras para música das fases, efeitos sonoros, música do menu e velocidade visual das setas.
-- **Acessibilidade:** ajustes descritos abaixo, disponíveis também pelo botão ◎ durante a partida.
-- **Sobre Nós:** exibe “Estamos Trabalhando Nisso por enquanto!!”.
+1. No menu, **Jogar** abre a história de Pixel em OrbitHop. A abertura pode ser pausada, avançada ou pulada.
+2. Aperte **← ↓ ↑ →** quando a seta em queda encontrar o alvo da mesma direção. As telas pequenas oferecem botões de toque.
+3. Complete a música e alcance a meta da fase. O resultado oferece o portal do próximo mundo. Os pontos da viagem seguem com você.
+4. Na próxima parada, clique em **Vamos tocar**. A pontuação trazida não preenche a meta da nova fase: ela precisa ser conquistada nessa música.
+5. **Esc**, o botão de pausa ou mudar de aba pausam música e dança. **Menu** permite voltar e depois continuar do mesmo ponto.
 
-Os botões principais têm respostas visuais e sons próprios ao receber foco/hover e ao clicar. Use **Tab**, **Shift+Tab** e **Enter** para navegar. Nos diálogos, **Esc** fecha as configurações. Na cutscene, Esc pausa/continua.
+Sem vidas ou eliminação. Se faltar energia, você pode tentar outra vez. Repetir uma música substitui os pontos daquela tentativa, preservando os pontos trazidos, sem duplicar o total. Mundos desbloqueados podem ser escolhidos no topo em um novo ensaio; trocar de mundo durante a música fica bloqueado. Recorde e desbloqueios são salvos neste navegador; recarregar encerra a tentativa atual.
 
-Durante a música, **Menu** pausa a partida e volta ao menu principal. **Continuar partida** retoma do mesmo ponto. Jogar outra aventura ou abrir o tutorial inicia uma nova sessão.
+## Dança contínua
 
-## Opções de áudio e velocidade
+A dança das fases usa **um personagem 2D articulado**, com cabeça, torso, braços, pernas, guitarra e caudas independentes. A posição das articulações é interpolada continuamente, com controle do contato dos pés, inclinação do tronco e movimento secundário das roupas. Cada mundo tem uma sequência própria, em ordem fixa, com novos gestos e maior amplitude ao longo da música. Os acertos produzem efeitos na guitarra e nos alvos, sem interromper a coreografia nem forçar poses aleatórias.
 
-| Controle | Função |
+O relógio da música conduz a dança; pausar congela as articulações. Redução de Movimento desacelera a coreografia; Sensibilidade Visual deixa Pixel estável. É animação 2D estilizada, sem captura de movimento ou modelo 3D. O menu preserva o outfit padrão e um movimento lento contínuo. O prólogo continua com dez cenas ilustradas, balões e efeitos em tempo real, sem dublagem.
+
+## Menu e tutorial
+
+- **Jogar:** aventura e prólogo em OrbitHop.
+- **Tutorial:** seis etapas guiadas por Pixel, prática das quatro direções, demonstração, um acerto e uma sequência. As tentativas se repetem até aprender; as estrelas e os pontos do ensaio não contam na campanha.
+- **Opções:** música das fases, sons do jogo, música do menu (Volume Principal) e velocidade visual das setas.
+- **Acessibilidade:** ajustes de cores, interface, movimento, contraste, legendas e velocidade.
+- **Sobre Nós:** mensagem “Estamos Trabalhando Nisso por enquanto!!”.
+- **Oi, Pixel!:** respostas do personagem. Botões têm efeitos diferentes ao passar o cursor/focar e clicar.
+
+Use **Tab / Shift+Tab / Enter** para navegar. As configurações abrem em diálogo com foco de teclado.
+
+## Conforto e acessibilidade
+
+A primeira tela é o **Aviso de Fotossensibilidade e Epilepsia**, estático e silencioso. O botão abre diretamente Acessibilidade; fechar leva ao menu. O aviso reaparece ao abrir/recarregar, enquanto as preferências permanecem salvas.
+
+| Opção | Resultado |
 | --- | --- |
-| Volume da Música | Música das fases, de 0 a 100%. |
-| Sons do Jogo | Botões, acertos, tutorial e portais, de 0 a 100%. |
-| Volume Principal | Música do menu, de 0 a 100%, conforme o nome solicitado para esse controle. |
-| Velocidade das Setas | Aproximação visual de 55 a 160%; não altera o tempo da música. Valores menores dão mais antecedência visual. |
+| Daltonismo | Filtros Protanopia, Deuteranopia e Tritanopia e três paletas de setas; formas e rótulos continuam presentes. |
+| Escalonamento | Interface/ícones 100–140%, legendas 100–180%, setas 100–140%, respeitando o espaço das pistas. |
+| Redução de Movimento Visual | Menos animação decorativa; dança entre 15 e 60% da velocidade. Respeita também a preferência do sistema. |
+| Alto Contraste | Painéis pretos, texto branco, contornos e setas sólidas. |
+| Legendas Descritivas | Próxima direção, aproximação e indicação de “AGORA”; resultado e pontos em linha separada. Falas da história/tutorial sempre visíveis. |
+| Velocidade do Jogo | 50–100%, desacelerando música e setas juntas e ampliando as janelas de reação. |
+| Sensibilidade Visual | Remove partículas/rastros/flashes decorativos, reduz brilho/saturação e estabiliza Pixel. Tem prioridade sobre a decoração. |
 
-Mudanças nas duas velocidades entram no início/reinício da próxima música, preservando a sincronização de uma tentativa já iniciada. Os volumes e os ajustes visuais se aplicam imediatamente.
+As opções de velocidade entram no início/reinício da música. Volumes e ajustes visuais são imediatos. A velocidade visual das setas, em Opções, varia de 55 a 160% sem mudar a duração da música. Os ajustes são personalização de conforto, sem garantia clínica de prevenção de crises; o jogo ainda deve ser avaliado com os próprios jogadores.
 
-## Acessibilidade
+## Pontuação
 
-| Opção | Comportamento |
-| --- | --- |
-| Modo para Daltonismo | Três ajustes de cor: Protanopia, Deuteranopia e Tritanopia. Filtros no cenário/personagem/efeitos e paletas próprias para setas. Direções e rótulos ajudam a identificar as ações sem depender apenas das cores. |
-| Escalonamento da Interface | Textos/ícones de 100 a 140%, legendas de 100 a 180% e setas fixas/móveis de 100 a 140%, limitadas ao espaço de cada pista. |
-| Redução de Movimento Visual | Diminui animações decorativas e permite dança de 15 a 60% da velocidade. Respeita também a preferência de movimento reduzido do sistema. |
-| Alto Contraste | Painéis pretos, letras claras, contornos fortes, setas sólidas e maior separação visual de cenário/personagem. |
-| Legendas Descritivas | Próxima direção e aproximação, indicação de “AGORA”, acerto, acerto parcial, quase acerto, erro e pontuação. Próxima ação e último resultado aparecem em linhas separadas. Falas da história e tutorial são sempre exibidas. |
-| Ajuste de Velocidade do Jogo | De 50 a 100%. Desacelera música e notas juntas e amplia proporcionalmente as janelas de acerto. A 50%, a primeira música dura aproximadamente 85 segundos. |
-| Sensibilidade Visual | Remove partículas, rastros e flashes decorativos, reduz brilho/saturação e deixa Pixel estável. Aplica-se também à abertura e ao tutorial. |
+**No ritmo!** até 75 ms: +100; **Muito bem!** até 150 ms: +60; **Quase!** até 240 ms: +20; nota perdida/direção incorreta na janela: 0. As janelas se ampliam proporcionalmente quando a velocidade do jogo é reduzida. O ajuste de ritmo de −200 a +200 ms corrige atrasos entre dispositivo, som e comando.
 
-As preferências são salvas automaticamente neste navegador. Sensibilidade Visual tem prioridade sobre os efeitos decorativos e o brilho de Alto Contraste. Os ajustes são recursos de personalização, não garantia de prevenção de crises nem substituto de avaliação individual. A acessibilidade ainda precisa de avaliação com os próprios jogadores.
+## Arquivos principais
 
-## Como jogar e viajar
+- `index.html`, `front.js`, `front.css`, `playful.css`, `wonder.css`: interfaces, tutorial, configurações e acabamento visual.
+- `levels.js`: quatro mundos, músicas, mapas, materiais e decoração.
+- `choreography.js`: animação articulada, trajetórias dos passos e sequências por fase.
+- `game.js`: áudio, notas, julgamento, efeitos e progressão.
+- `sprite-assets.js`, `cinematic.js`: carregamento decodificado e abertura animada.
+- `settings.js`, `interface-audio.js`: preferências, música de menu e efeitos sonoros.
+- `assets/*-v07.png`: novos cenários e peças dos trajes; `DIRECAO-ARTE-07.md`: referências e prompts da ferramenta integrada de imagens.
 
-1. No menu, clique em **Jogar**. Após o prólogo, ouça a contagem e aperte **← ↓ ↑ →** quando a nota encontrar o alvo da mesma direção. Nas repetições e na segunda fase, use **Vamos tocar**.
-2. Faça pelo menos **2.600 pontos no Reino dos Doces** e conclua a música.
-3. No resultado, clique em **Entrar em Brinquedolândia**. O portal abre; os pontos vão com você.
-4. Em Brinquedolândia, clique em **Vamos tocar** para começar a segunda música. A meta da segunda fase é **3.000 pontos**.
-5. **Esc** pausa e continua. O botão de pausa também funciona. Trocar de aba pausa a partida.
-
-A música nunca é interrompida ao atingir a meta. Você conclui o show antes de viajar. Se não atingir a meta, pode tentar novamente, sem perder vidas. O portal fica disponível apenas quando a tentativa atual atinge a meta.
-
-Depois de ganhar o desbloqueio, Brinquedolândia pode ser escolhida pelos botões dos mundos no topo. Isso inicia um treino com placar novo. Durante uma música, a troca de mundo fica bloqueada.
-
-## As duas fases
-
-| Fase | Música e tema | Ritmo | Notas | Meta |
-| --- | --- | --- | --- | --- |
-| Reino dos Doces | **Doce Travessia**: sinos, melodia suave, baixo redondo e acordes sustentados | 90 BPM; aproximadamente 43 segundos | 46 | 2.600 |
-| Brinquedolândia | **Desfile dos Brinquedos**: caixa de música com sobretons de sino, blocos de madeira, percussão de brinquedo e acordes curtos | 104 BPM; aproximadamente 37 segundos | 53 | 3.000 |
-
-Cada fase tem composição e mapa de notas próprios; a segunda música não é apenas uma mudança de velocidade da primeira. As trilhas são sintetizadas no navegador, sem áudio externo. A contagem inicial acrescenta cerca de três segundos.
-
-Os visuais seguem as referências fornecidas pela equipe: traje rosa de doces com guitarra espiral na primeira fase; blocos vermelhos, azuis e amarelos, estrelas, ursinho e guitarra de brinquedo na segunda. Pixel aparece de corpo inteiro com transparência e oito poses por traje.
-
-## Pontos e repetição
-
-- **No ritmo!**: até 75 ms antes/depois do alvo, +100.
-- **Muito bem!**: até 150 ms, +60.
-- **Quase!**: até 240 ms, +20.
-- Direção incorreta durante a janela ou nota perdida: 0.
-
-O HUD mostra o **TOTAL** da viagem; a barra do portal mede apenas os pontos da fase atual. Assim, os pontos trazidos do Reino dos Doces não completam a meta de Brinquedolândia automaticamente. No resultado, o número grande é a pontuação da fase e o detalhe mostra o total acumulado.
-
-Repetir a segunda fase zera somente a pontuação dessa tentativa, preservando os pontos trazidos da primeira. A tentativa anterior da segunda fase é substituída, evitando duplicação. Começar outro mundo pelo menu inicia um treino com placar novo.
-
-Desbloqueio e recorde são guardados no navegador quando o armazenamento local está disponível. A viagem em andamento permanece na memória enquanto a página fica aberta; recarregar começa uma nova tentativa. O jogo funciona também se o navegador bloquear o armazenamento.
-
-## Efeitos e dança
-
-Pista de doces com detalhes listrados, luzes e gradientes; pista de brinquedos com blocos de cor e estrelas. As setas têm brilho, rastros, pequenos símbolos orbitando e animação leve na aproximação. Os alvos permanecem fixos.
-
-Acertos criam explosões de estrelas, anéis de luz e partículas junto aos alvos e à guitarra. A dança fica mais intensa com combo e pontos. O cenário continua sendo o fundo da tela inteira. A opção **Efeitos suaves** reduz partículas, movimento e brilho; a preferência de movimento reduzido do sistema também é respeitada.
-
-## Ajustar e testar
-
-Comece com **Ajuste de ritmo: 0 ms**. Se seus comandos parecerem sempre atrasados em relação ao som, aumente em passos de 10–20 ms; se parecerem adiantados, diminua. O ajuste pode ser feito antes da tentativa e no resultado. Volume e tela cheia ficam disponíveis no jogo.
-
-Confira especialmente:
-
-- Se as músicas soam diferentes e combinam com doces/brinquedos.
-- Se o portal libera após a meta e os pontos permanecem no total ao viajar.
-- Se o traje realmente muda junto com o cenário.
-- Se as setas e os alvos continuam legíveis com os efeitos mais intensos.
-- Se a segunda fase tem uma progressão de dificuldade confortável.
-
-O foco é o computador com teclado. Telas menores também têm botões de toque, com Pixel separado da pista.
-
-## Arquivos
-
-- `index.html`: tela e navegação.
-- `front.js` e `front.css`: menu, prólogo, tutorial e configurações.
-- `playful.css`: acabamento infantil, botões, balões e painéis da versão 0.6.
-- `cinematic.js`: animação da viagem, portal, queda, recuperação e guitarra separada.
-- `sprite-assets.js`: carregamento com decodificação, validação e recortes de poses.
-- `settings.js`: preferências e persistência local.
-- `interface-audio.js`: música do menu e efeitos sonoros.
-- `levels.js`: cadastro dos mundos, músicas, mapas e trajes.
-- `game.js`: áudio, sincronização, julgamento, viagem, dança e efeitos.
-- `stage.css` e `worlds.css`: composição e ornamentação temática.
-- `assets/`: cenários e sprites; os documentos `GERACAO-*.md` registram referências e prompts.
-
-A animação usa oito poses por traje e balanço entre quadros. Ainda não há um esqueleto com articulações independentes. Esta entrega contém dois mundos, sem oferecer uma terceira fase inexistente.
-
-O prólogo é uma animação 2D em tempo real com cenário, sprites, efeitos, câmera e legendas, sem vídeo externo. As falas são escritas; não há dublagem. Esta atualização implementa o pedido de menu e abertura, mantendo o restante do planejamento pausado.
+O fundo separado de OrbitHop está em `outputs/OrbitHop-background-0.7.png`. O ZIP da entrega e as capturas de tela ficam em `outputs/`, fora do controle de versão.
