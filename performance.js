@@ -8,6 +8,8 @@
     doces:{style:'Pop de açúcar',name:'Doce balanço',phrases:['Balanço de açúcar','Passo de nuvem','Onda de confeitos','Final coração']},
     brinquedos:{style:'Funk dos brinquedos',name:'Desfile das estrelas',phrases:['Marca o passinho','Deslize de brinquedo','Balanço das estrelas','Desfile triunfal']},
     gelo:{style:'Ballet · valsa em 3 tempos',name:'Valsa dos cristais',phrases:['Plié suave','Passo de valsa','Arco de cristal','Reverência de neve']},
+    deserto:{style:'Dança das dunas',name:'Passos do sol',phrases:['Balanço das dunas','Passo solar','Onda de areia','Grande final do sol']},
+    pantano:{style:'Groove da floresta',name:'Balanço das raízes',phrases:['Passo de raiz','Onda de folhas','Groove dos vaga-lumes','Abraço da floresta']},
     ceu:{style:'Dança contemporânea',name:'Órbita das nuvens',phrases:['Respiração das nuvens','Onda celestial','Passo em órbita','Abraço das estrelas']}
   });
   // Every dance uses one connected, complete illustration. No ragdoll, joints,
@@ -31,15 +33,21 @@
       lift=(1-Math.cos(t/3))*.006*a;
       lean=Math.sin(t/6)*.025*a;
       bend=Math.sin(t/3)*.012*a;step=Math.sin(t/3)*.006*a;
+    }else if(id==='deserto'){
+      x=(Math.sin(t/4)*.04+Math.sin(t/2)*.009)*a;lean=Math.sin(t/2)*.035*a;bend=Math.sin(t/2-.6)*.023*a;step=Math.sin(t/2)*.022*a;
+    }else if(id==='pantano'){
+      x=Math.sin(t/4)*.036*a;lean=Math.sin(t/2+.3)*.032*a;bend=Math.sin(t/4)*.026*a;step=Math.sin(t/2+.4)*.024*a;
     }else{
       x=Math.sin(t/8)*.028*a;
       lift=(1-Math.cos(t/4))*.006*a;
       lean=Math.sin(t/8-.2)*.025*a;
       bend=Math.sin(t/4)*.014*a;step=Math.sin(t/4)*.008*a;
     }
+    // Larger continuous phrases; tempo is shared with the song, never random frames.
+    x*=1.5;lean*=1.55;bend*=1.5;step*=1.5;
     const phrase=definitions[id].phrases[Math.min(3,Math.floor(clamp(progress)*4))];
     const feet=id==='gelo'?Math.sin(t/3):id==='ceu'?Math.sin(t/4):Math.sin(t/2);
-    return {x,lift,lean,bend,step,leftFoot:Math.max(0,feet)**2*.019*a,rightFoot:Math.max(0,-feet)**2*.019*a,phrase};
+    return {x,lift,lean,bend,step,leftFoot:Math.max(0,feet)**2*.028*a,rightFoot:Math.max(0,-feet)**2*.028*a,phrase};
   }
   const moods=[
     {name:'Tristinho',message:'A próxima é nossa. Vamos juntos!',color:'#b5b8f4'},
@@ -76,19 +84,16 @@
   }
   function body(ctx,texture,x,floor,scale,p){
     const gpu=window.RR_MESH?.draw(ctx,texture,x,floor,scale,p);
-    if(!gpu){
-      // A cheap stable fallback for devices with unavailable/lost WebGL.
-      ctx.save();ctx.translate(x,floor-texture.height*scale*p.lift);ctx.rotate(p.lean);
-      ctx.drawImage(texture,-texture.width*scale/2,-texture.height*scale,texture.width*scale,texture.height*scale);ctx.restore();
-    }
-    return {x,floor:floor-texture.height*scale*p.lift,height:texture.height*scale,lean:p.lean,backend:gpu?'webgl':'canvas-fallback',bodyDrawCalls:1};
+    const calls=gpu?1:RR_MESH.canvasMesh(ctx,texture,x,floor,scale,p);
+    const contact=RR_MESH.project((p.contactX||texture.width*.5)/texture.width,(p.groundY||texture.height)/texture.height,texture.width,texture.height,p,x,floor,scale,[0,0]);
+    return {x,floor,height:texture.height*scale,lean:p.lean,backend:gpu?'webgl':'canvas-mesh',bodyDrawCalls:calls,groundContact:{x:contact[0],y:contact[1]}};
   }
   const stages=new Map();
   function staticPlatform(ctx,{width,height,floor,x,id,colors,accent,power,beat,soft,still}){
     ctx.clearRect(0,0,width,height);
     x=width*.52;
-    const rx=width*.44,ry=Math.min(28,width*.073),cy=floor-5,depth=Math.min(24,width*.06),intensity=soft?.12:.25+power*.55;
-    const tint=id==='doces'?'#59325e':id==='brinquedos'?'#2d4772':id==='gelo'?'#253957':'#49405e';
+    const rx=width*.44,ry=Math.min(28,width*.073),cy=floor,depth=Math.min(24,width*.06),intensity=soft?.12:.25+power*.55;
+    const tint=id==='doces'?'#59325e':id==='brinquedos'?'#2d4772':id==='gelo'?'#253957':id==='deserto'?'#68454b':id==='pantano'?'#254b4b':'#49405e';
     ctx.save();
     // A stable, dark scenic backing separates the original outfit from the view.
     const halo=ctx.createRadialGradient(x,cy-height*.42,12,x,cy-height*.42,width*.7);
@@ -105,6 +110,10 @@
         ctx.fillStyle=colors[i%4];ctx.fillRect(px+2,cy+5,ww-4,depth+ry);ctx.strokeStyle='#ffffff99';ctx.strokeRect(px+2,cy+5,ww-4,depth+ry);
       }else if(id==='gelo'){
         ctx.fillStyle=i%2?'#94dfffc0':'#cbbcf9b0';ctx.beginPath();ctx.moveTo(px,cy);ctx.lineTo(px+ww,cy+depth+ry);ctx.lineTo(px+ww*1.5,cy);ctx.closePath();ctx.fill();
+      }else if(id==='deserto'){
+        ctx.fillStyle=i%2?'#e3a271':'#a97b66';ctx.fillRect(px+1,cy,ww-2,depth+ry);ctx.strokeStyle='#ffe0aa';ctx.strokeRect(px+3,cy+7,ww-6,9);
+      }else if(id==='pantano'){
+        ctx.fillStyle=i%2?'#658d70':'#446d60';ctx.beginPath();ctx.ellipse(px+ww*.5,cy+depth,ww*.65,ry*.7,-.3,0,TAU);ctx.fill();
       }else{
         ctx.fillStyle='#e3cb8dbb';ctx.fillRect(px,cy+depth+ry*.4,ww,3);
         ctx.fillStyle='#e7e4fff0';ctx.beginPath();ctx.ellipse(px+ww*.5,cy+depth+ry*.4,ww*.55,ry*.38,0,0,TAU);ctx.fill();
@@ -170,21 +179,21 @@
       base=document.createElement('canvas');base.width=Math.ceil(width*1.25);base.height=Math.ceil(height*1.25);const cx=base.getContext('2d');cx.scale(1.25,1.25);staticPlatform(cx,o);stages.set(key,base);
     }
     ctx.clearRect(0,0,width,height);ctx.drawImage(base,0,0,width,height);
-    return{theme:id,center:width*.52,floor:floor-5,power,...lighting(ctx,o),cachedBase:true};
+    return{theme:id,center:width*.52,floor,power,...lighting(ctx,o),cachedBase:true};
   }
   function draw(ctx,image,level,{width,height,beat,progress,amount,mood=2,soft=false}){
     const rect=level.frames[0],scale=Math.min(width*.9/(level.designWidth||440),height*.94/(level.designHeight||552));
-    const p=pose(level.id,beat,progress,amount),x=width*.52+p.x*Math.min(height,width*1.1),floor=height*.965;
+    const p=pose(level.id,beat,progress,amount);p.groundY=level.groundY||rect[3];p.contactX=level.contactX||rect[2]*.5;const x=width*.52+p.x*Math.min(height,width*1.1),floor=height*.935;
     const tex=texture(image,rect,level.face,mood,level.id,level.faceClip,level.mouth,level.tears);
     ctx.save();ctx.fillStyle='#15142e66';ctx.beginPath();ctx.ellipse(x,floor-2,rect[2]*scale*.28,7*scale,0,0,TAU);ctx.fill();ctx.restore();
     const model=body(ctx,tex,x,floor,scale,p);
     if(mood===0&&!soft&&level.tears){
       // Tiny moving drops follow the cheek streams, always below the eyes.
-      ctx.save();ctx.translate(x,floor-tex.height*scale*p.lift);ctx.rotate(p.lean);ctx.fillStyle='#bdf6ff';
+      ctx.save();ctx.fillStyle='#bdf6ff';
       for(const [i,[tx,ty,dx,dy]] of level.tears.entries()){
         const t=((beat*.22+i*.43)%1+1)%1,px=tx+dx*t,py=ty+dy*t,v=py/tex.height;
-        const bend=p.bend*Math.sin(v*Math.PI)*tex.height;
-        ctx.beginPath();ctx.ellipse((px-tex.width/2+bend)*scale,(py-tex.height)*scale,Math.max(.8,level.mouth[2]*scale*.065),Math.max(1.2,level.mouth[3]*scale*.23),-.12,0,TAU);ctx.fill();
+        const point=RR_MESH.project(px/tex.width,v,tex.width,tex.height,p,x,floor,scale,[0,0]);
+        ctx.beginPath();ctx.ellipse(point[0],point[1],Math.max(.8,level.mouth[2]*scale*.065),Math.max(1.2,level.mouth[3]*scale*.23),p.lean-.12,0,TAU);ctx.fill();
       }
       ctx.restore();
     }

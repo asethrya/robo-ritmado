@@ -4,25 +4,27 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#150f2e">
-  <meta name="description" content="Robô Ritmado: ajude Pixel a viajar por quatro mundos temáticos em uma aventura musical.">
+  <meta name="description" content="Robô Ritmado: ajude Pixel a viajar por seis mundos temáticos em uma aventura musical.">
   <title>Robô Ritmado • A aventura de Pixel</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect rx='16' width='64' height='64' fill='%23170e30'/%3E%3Ctext x='11' y='48' font-size='48' fill='%23fa75d8'%3E✦%3C/text%3E%3C/svg%3E">
-  <link rel="stylesheet" href="stage.css?v=0.9">
-  <link rel="stylesheet" href="worlds.css?v=0.9">
-  <link rel="stylesheet" href="front.css?v=0.9">
-  <link rel="stylesheet" href="playful.css?v=0.9">
-  <script src="settings.js?v=0.9" defer></script>
-  <script src="interface-audio.js?v=0.9" defer></script>
-  <script src="sprite-assets.js?v=0.9" defer></script>
-  <link rel="stylesheet" href="wonder.css?v=0.9">
-  <link rel="stylesheet" href="performance.css?v=0.9">
-  <link rel="stylesheet" href="encore.css?v=0.9">
-  <script src="gpu-dancer.js?v=0.9" defer></script>
-  <script src="performance.js?v=0.9" defer></script>
-  <script src="levels.js?v=0.9" defer></script>
-  <script src="game.js?v=0.9" defer></script>
-  <script src="cinematic.js?v=0.9" defer></script>
-  <script src="front.js?v=0.9" defer></script>
+  <link rel="stylesheet" href="stage.css?v=0.10">
+  <link rel="stylesheet" href="worlds.css?v=0.10">
+  <link rel="stylesheet" href="front.css?v=0.10">
+  <link rel="stylesheet" href="playful.css?v=0.10">
+  <script src="settings.js?v=0.10" defer></script>
+  <script src="interface-audio.js?v=0.10" defer></script>
+  <script src="sprite-assets.js?v=0.10" defer></script>
+  <link rel="stylesheet" href="wonder.css?v=0.10">
+  <link rel="stylesheet" href="performance.css?v=0.10">
+  <link rel="stylesheet" href="encore.css?v=0.10">
+  <link rel="stylesheet" href="adventure.css?v=0.10">
+  <script src="gpu-dancer.js?v=0.10" defer></script>
+  <script src="performance.js?v=0.10" defer></script>
+  <script src="campaign.js?v=0.10" defer></script>
+  <script src="levels.js?v=0.10" defer></script>
+  <script src="game.js?v=0.10" defer></script>
+  <script src="cinematic.js?v=0.10" defer></script>
+  <script src="front.js?v=0.10" defer></script>
 </head>
 <body data-theme="doces" data-screen="menu" class="warning-pending">
   <div class="world" aria-hidden="true"></div>
@@ -30,7 +32,7 @@
   <div class="app">
     <header class="topbar">
       <a class="brand" href="index.html" aria-label="Robô Ritmado, início"><span class="brand-star">✦</span><strong>Robô <span>Ritmado</span></strong></a>
-      <nav class="journey-nav" aria-label="Mundos da aventura"><button id="worldCandy" class="world-chip" aria-current="step">01 <span>Reino dos Doces</span></button><span class="journey-link">···✦···</span><button id="worldToys" class="world-chip" disabled>02 <span>Brinquedolândia</span><small id="toyLock">🔒</small></button><button id="worldIce" class="world-chip" disabled>03 <span>Castelo Invernal</span><small>🔒</small></button><button id="worldSky" class="world-chip" disabled>04 <span>Paraíso</span><small>🔒</small></button></nav>
+      <nav id="journeyNav" class="journey-nav" aria-label="Os dez mundos da aventura"></nav>
       <div class="top-actions"><button id="effects" class="icon-button" aria-pressed="false" title="Reduzir os efeitos visuais">✧ <span>Efeitos suaves</span></button><button id="fullscreen" class="icon-button" title="Alternar tela cheia" aria-label="Alternar tela cheia">⛶</button></div>
     </header>
 
@@ -70,6 +72,7 @@
 
             <div id="results" class="overlay result-overlay" hidden>
               <span id="resultPill" class="pill">✦ VIAGEM CONCLUÍDA</span><div class="result-stars" id="stars" aria-label="Resultado em estrelas">✦ ✦ ✦</div>
+              <div id="retryCoach" class="retry-coach" hidden><canvas id="retryPixel" width="100" height="150" aria-hidden="true"></canvas><p>Eu confio em você!<br>Cada tentativa ajuda a aprender.<br>Vamos tentar juntos mais uma vez?</p></div>
               <h2 id="resultTitle">Você fez música!</h2><p id="resultMessage"></p>
               <strong id="resultScore" class="result-score">0 <small>pontos</small></strong>
               <div class="result-grid"><div><b id="resultPerfect">0</b><span>No ritmo!</span></div><div><b id="resultGood">0</b><span>Muito bem!</span></div><div><b id="resultNear">0</b><span>Quase!</span></div><div><b id="resultMiss">0</b><span>Próxima!</span></div></div>
@@ -96,7 +99,7 @@
       </section>
       <div class="touch-controls" aria-label="Setas para jogar com toque"><button data-lane="0" aria-label="Esquerda">←</button><button data-lane="1" aria-label="Baixo">↓</button><button data-lane="2" aria-label="Cima">↑</button><button data-lane="3" aria-label="Direita">→</button></div>
     </main>
-    <footer><span>✦ ROBÔ RITMADO · SIGA O RITMO. EXPLORE O INFINITO.</span><span>VERSÃO 0.9 <b>•</b> QUATRO MUNDOS</span></footer>
+    <footer><span>✦ ROBÔ RITMADO · SIGA O RITMO. EXPLORE O INFINITO.</span><span>VERSÃO 0.10 <b>•</b> SEIS MUNDOS</span></footer>
   </div>
   <div id="travelOverlay" class="travel-overlay" hidden role="status" aria-live="polite"><div class="travel-rings" aria-hidden="true"><i></i><i></i><i></i><b>✦</b></div><span class="pill">NOVO MUNDO DESBLOQUEADO</span><h2>Próxima parada:<br><em id="travelDestination">Brinquedolândia!</em></h2><p id="travelSummary">Seus pontos viajam com você.</p><span id="travelStatus">Abrindo o portal…</span><button id="retryTravel" class="primary-button" hidden>Tentar abrir o portal novamente</button></div>
   <div id="announcer" class="sr-only" role="status" aria-live="polite"></div>

@@ -16,6 +16,9 @@
     return typeof defaults[key] === 'boolean' ? val === true : defaults[key];
   }
   for (const key of Object.keys(defaults)) if (key in saved) value[key] = normalize(key, saved[key]);
+  let persistTimer;
+  function persist(){clearTimeout(persistTimer);try{localStorage.setItem('rr-settings-v05',JSON.stringify(value));}catch{}}
+  window.addEventListener('pagehide',persist);
   function apply() {
     const b = document.body, root = document.documentElement;
     b.classList.toggle('motion-reduced', value.reduceMotion || systemReduced.matches);
@@ -31,7 +34,7 @@
   }
   window.RR_SETTINGS = Object.freeze({
     get: () => ({ ...value }),
-    set(key, val) { if (!(key in defaults)) return; value[key] = normalize(key, val); try { localStorage.setItem('rr-settings-v05', JSON.stringify(value)); } catch {} apply(); },
+    set(key, val) { if (!(key in defaults)) return; const next=normalize(key,val);if(value[key]===next)return;value[key]=next;clearTimeout(persistTimer);persistTimer=setTimeout(persist,180);apply(); },
     reset() { Object.assign(value, defaults); try { localStorage.setItem('rr-settings-v05', JSON.stringify(value)); } catch {} apply(); },
     motion: () => value.sensitivity ? 0 : (value.reduceMotion || systemReduced.matches) ? value.danceSpeed : 1,
     gentle: () => value.sensitivity || value.reduceMotion || systemReduced.matches,

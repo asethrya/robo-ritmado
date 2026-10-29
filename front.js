@@ -16,7 +16,7 @@
       <canvas id="orbitFx" class="orbit-fx" aria-hidden="true"></canvas><canvas id="cinemaCanvas" class="cinema-canvas" role="img" aria-label="A viagem animada de Pixel pelos portais"></canvas>
       <header class="shell-header"><div class="orbit-wordmark"><span class="orbit-mark" aria-hidden="true"></span> ORBITHOP</div><div class="shell-meta"><i></i> CONEXÃO INTERDIMENSIONAL <span>—</span> VAMOS BRINCAR!</div></header>
       <div id="menuContent" class="menu-content"><span class="menu-kicker">UMA AVENTURA EM CADA BATIDA!</span>
-        <h1 class="game-logo">Robô<span>Ritmado</span></h1>
+        <h1 class="game-logo" aria-label="Robô Ritmado"><i class="logo-note" aria-hidden="true">♫</i><span class="logo-word logo-robot">Robô</span><span class="logo-word logo-rhythm">Ritmado</span><i class="logo-star" aria-hidden="true">✦</i></h1>
         <p class="menu-story">Uma guitarra. Muitos mundos!<br>Vem brincar com <strong>Pixel!</strong></p>
         <nav class="menu-nav" aria-label="Menu principal">
           <button id="menuPlay" class="orbit-button play" data-cue="play"><span class="button-icon" aria-hidden="true">▷</span>Jogar<span class="button-arrow" aria-hidden="true">↗</span></button>
@@ -78,7 +78,7 @@
   appActions.innerHTML = '<button id="gameMenu" class="quiet-button" data-cue="back" aria-label="Pausar e voltar ao menu">☰ <span class="settings-label">Menu</span></button><button id="gameAccessibility" class="quiet-button" data-cue="accessibility" aria-label="Abrir Acessibilidade">◎</button>';
   document.querySelector('.top-actions').prepend(appActions);
   document.querySelector('.brand').addEventListener('click',e=>{e.preventDefault();returnMenu();});
-  document.querySelector('footer span:last-child').textContent='VERSÃO 0.9 • QUATRO MUNDOS PRA BRINCAR!';
+  document.querySelector('footer span:last-child').textContent='VERSÃO 0.10 • SEIS MUNDOS PRA BRINCAR!';
   const buttonInfo={menuPlay:['Jogar','Começar a aventura'],menuTutorial:['Tutorial','Aprender com Pixel'],menuOptions:['Opções','Ajustar sons e velocidade'],menuAccessibility:['Acessibilidade','Do seu jeitinho'],menuAbout:['Sobre Nós','Conheça nossa turma']};
   for(const [id,[title,sub]] of Object.entries(buttonInfo)){const button=$(id);button.setAttribute('aria-label',title);for(const node of [...button.childNodes])if(node.nodeType===Node.TEXT_NODE)node.remove();const label=document.createElement('span');label.className='button-copy';label.innerHTML='<b>'+title+'</b><small>'+sub+'</small>';button.insertBefore(label,button.querySelector('.button-arrow'));}
   let greetingUntil=0;
@@ -129,7 +129,7 @@
     const key=input.dataset.setting;
     if(key==='colorEnabled') RR_SETTINGS.set('colorMode',input.checked?lastColor:'off');
     else {if(key==='colorMode') lastColor=input.value; RR_SETTINGS.set(key,input.type==='checkbox'?input.checked:input.value);}
-    syncSettings();
+    if(input.type==='checkbox'||input.tagName==='SELECT')syncSettings();else{const out=$('out-'+key);if(out)out.textContent=(key.endsWith('Volume')?Math.round(Number(input.value)):Math.round(Number(input.value)*100))+'%';}
   });
   $('optionsTab').onclick=()=>selectTab('options'); $('accessibilityTab').onclick=()=>selectTab('accessibility');
   for(const tab of [$('optionsTab'),$('accessibilityTab')]) tab.addEventListener('keydown',e=>{if(['ArrowLeft','ArrowRight','Home','End'].includes(e.key)){e.preventDefault(); const name=tab.id==='optionsTab'?'accessibility':'options'; selectTab(name); $(name+'Tab').focus();}});
@@ -149,7 +149,7 @@
   let hoverStamp=0;
   document.addEventListener('pointerover',e=>{const b=e.target.closest('button[data-cue]');if(!b||b.disabled||b.contains(e.relatedTarget))return; if(performance.now()-hoverStamp<65)return;hoverStamp=performance.now();RR_AUDIO.cue(b.dataset.cue,'hover');});
   document.addEventListener('focusin',e=>{const b=e.target.closest('button[data-cue]');if(b&&!document.body.classList.contains('warning-pending'))RR_AUDIO.cue(b.dataset.cue,'hover');});
-  document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b||b.disabled)return;if(b.dataset.cue)RR_AUDIO.cue(b.dataset.cue);b.classList.remove('clicked');void b.offsetWidth;b.classList.add('clicked');setTimeout(()=>b.classList.remove('clicked'),650);});
+  document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b||b.disabled)return;if(b.dataset.cue)RR_AUDIO.cue(b.dataset.cue);b.classList.remove('clicked');requestAnimationFrame(()=>b.classList.add('clicked'));setTimeout(()=>b.classList.remove('clicked'),650);});
 
   // A real-time, layered animated prologue; manual advance and pause remain available.
   const cinema=RR_CINEMA.create($('cinemaCanvas')),shots=cinema.shots;
@@ -196,9 +196,9 @@
     'Você conseguiu! Agora vamos brincar com as quatro direções. Uma de cada vez!',
     'Uhuuul! Você já sabe! Vamos usar nossa música para encontrar o caminho de casa?'
   ];
-  function dialogue(text){clearTimeout(dialogueTimer);$('tutorialDialogue').textContent=text;$('tutorialDialogue').classList.remove('reveal');void $('tutorialDialogue').offsetWidth;$('tutorialDialogue').classList.add('reveal');}
+  function dialogue(text){clearTimeout(dialogueTimer);$('tutorialDialogue').textContent=text;$('tutorialDialogue').classList.remove('reveal');requestAnimationFrame(()=>$('tutorialDialogue').classList.add('reveal'));}
   function setLesson(n) {
-    lesson=n;lessonElapsed=0;tutorialNote=null;tutorialHits=0;seen.clear();feedbackUntil=0;
+    tutorialDirty=true;lesson=n;lessonElapsed=0;tutorialNote=null;tutorialHits=0;seen.clear();feedbackUntil=0;
     $('lessonRewards').textContent=n===5?'★★★★':'☆☆☆☆';
     $('lessonNumber').textContent=` / ${n+1} DE ${lessons.length}`;dialogue(lessons[n]);$('tutorialFeedback').textContent='';
     $('tutorialSteps').innerHTML=lessons.map((_,i)=>`<i class="${i<n?'complete':i===n?'current':''}"></i>`).join('');
@@ -219,7 +219,7 @@
     const delta=Math.abs(tutorialNote.at-lessonElapsed),window=.38/RR_SETTINGS.rate();
     if(lane!==tutorialNote.lane){RR_AUDIO.hit(lane,'miss');feedback(`Vamos tentar ${glyphs[tutorialNote.lane]} ${names[tutorialNote.lane]}. A direção precisa ser igual.`);return;}
     if(delta>window){feedback('Ainda está chegando. Espere a seta encontrar o alvo.');return;}
-    const points=delta<.15/RR_SETTINGS.rate()?100:60;tutorialScore+=points;tutorialHits++;RR_AUDIO.hit(lane);tutorialNote=null;document.body.classList.remove('tutorial-success');void $('tutorialUI').offsetWidth;document.body.classList.add('tutorial-success');setTimeout(()=>document.body.classList.remove('tutorial-success'),700);
+    const points=delta<.15/RR_SETTINGS.rate()?100:60;tutorialScore+=points;tutorialHits++;RR_AUDIO.hit(lane);tutorialNote=null;document.body.classList.remove('tutorial-success');requestAnimationFrame(()=>document.body.classList.add('tutorial-success'));setTimeout(()=>document.body.classList.remove('tutorial-success'),700);
     feedback(`${points===100?'No ritmo!':'Muito bem!'} +${points} pontos · Treino: ${tutorialScore}`);
     if((lesson===3&&tutorialHits>=1)||(lesson===4&&tutorialHits>=4)){RR_AUDIO.cheer();$('tutorialNext').disabled=false;feedback(`Conseguimos! ${tutorialHits} ${tutorialHits===1?'acerto':'acertos'}. Clique em ${lesson===4?'Concluir ensaio':'Próximo passo'}.`);}
   }
@@ -234,7 +234,9 @@
   const actorImage=RR_SPRITES.load('assets/pixel-padrao-v1.png').image;
   const frames=[[0,0,418,526],[427,0,367,518],[797,0,366,519],[1166,0,370,520],[0,533,445,480],[448,520,340,494],[790,533,369,480],[1160,559,376,451]];
   const actorCanvas=$('orbitPixel'),act=actorCanvas.getContext('2d'),fxCanvas=$('orbitFx'),fx=fxCanvas.getContext('2d'),tutorialCanvas=$('tutorialCanvas'),tc=tutorialCanvas.getContext('2d');
-  const dims=new Map();
+  const dims=new Map();let standardPose=null;
+  RR_SPRITES.load('assets/pixel-padrao-v1.png').ready.then(im=>{standardPose=document.createElement('canvas');standardPose.width=418;standardPose.height=526;standardPose.getContext('2d').drawImage(im,0,0,418,526,0,0,418,526);});
+
   const menuStage=$('menuStage'),menuStageCtx=menuStage.getContext('2d'),menuStageAsset=RR_SPRITES.load('assets/palco-orbithop-v09.png');
   let menuActorBox={x:0,y:0,w:1,h:1};
   function paintMenuStage(){
@@ -249,7 +251,7 @@
   }).observe(canvas);
   let last=performance.now(),elapsed=0,actorTime=0,tutorialFrozen=false;
   function actorPose(image,rect,w,h,alpha=1,sway=0){
-    if(!image.complete||!image.naturalWidth)return;
+    if(!(image instanceof HTMLCanvasElement)&&(!image.complete||!image.naturalWidth))return;
     const [sx,sy,sw,sh]=rect,scale=Math.min(w*.96/465,h*(currentScreen==='menu'?.75:.94)/530);
     act.save();act.globalAlpha=alpha;act.translate(w*.51,h*(currentScreen==='menu'?.86:.97));act.rotate(sway);act.drawImage(image,sx,sy,sw,sh,-sw*scale/2,-sh*scale,sw*scale,sh*scale);act.restore();
   }
@@ -261,24 +263,35 @@
     if(currentScreen==='menu'&&performance.now()<greetingUntil)f=0;
     const sway=motion===0?0:Math.sin(actorTime*.7)*.009;
     // A single complete pose avoids overlapping silhouettes during slow motion.
-    actorPose(actorImage,frames[f],w,h,1,sway);
+    actorPose(standardPose||actorImage,standardPose?[0,0,418,526]:frames[f],w,h,1,sway);
 
   }
   const motes=Array.from({length:38},(_,i)=>({x:(i*.618033)%1,y:(i*.371)%1,s:10+(i%4)*5,speed:.018+(i%5)*.004,symbol:i%5===0?'♬':i%3===0?'♩':i%4===0?'✧':'♪'}));
   function guitarIcon(x,y,size,rot){fx.save();fx.translate(x,y);fx.rotate(rot);fx.strokeStyle='#a9daf5';fx.lineWidth=1.4;fx.beginPath();fx.ellipse(0,4,size*.24,size*.34,-.4,0,Math.PI*2);fx.stroke();fx.beginPath();fx.moveTo(2,0);fx.lineTo(size*.44,-size*.7);fx.lineTo(size*.52,-size*.65);fx.lineTo(8,6);fx.stroke();fx.restore();}
   function renderFX(){const [w,h]=dims.get(fxCanvas)||[1,1];fx.clearRect(0,0,w,h);if(RR_SETTINGS.gentle()||$('settingsDialog').open||document.body.classList.contains('warning-pending'))return;
     if(currentScreen==='menu'){const b=menuActorBox;fx.save();fx.translate(b.x,b.y);RR_PERFORMANCE.lighting(fx,{width:b.w,height:b.h,floor:b.h*.86,x:b.w*.51,colors:['#f67bda','#7edfff','#b7a1ff','#fff0be'],power:.8,beat:actorTime*.4,soft:RR_SETTINGS.gentle(),still:RR_SETTINGS.motion()===0,deluxe:true});fx.restore();}
-    fx.textAlign='center';for(const [i,p] of motes.entries()){const x=p.x*w+Math.sin(elapsed*.12+i)*18,y=h-((p.y+elapsed*p.speed)%1)*h;fx.globalAlpha=.15+Math.sin((y/h)*Math.PI)*.3;fx.fillStyle=i%2?'#a2d9f2':'#f3a5df';fx.font=`${p.s}px Segoe UI`;fx.fillText(p.symbol,x,y);}
+    fx.textAlign='center';for(const [i,p] of motes.entries()){if(currentScreen==='tutorial'&&i%2)continue;const x=p.x*w+Math.sin(elapsed*.12+i)*18,y=h-((p.y+elapsed*p.speed)%1)*h;fx.globalAlpha=.15+Math.sin((y/h)*Math.PI)*.3;fx.fillStyle=i%2?'#a2d9f2':'#f3a5df';fx.font=`${p.s}px Segoe UI`;fx.fillText(p.symbol,x,y);}
     fx.globalAlpha=.28;guitarIcon(w*.84,h*.25,56,Math.sin(elapsed*.15)*.2);guitarIcon(w*.48,h*.75,33,-.7+elapsed*.03);fx.globalAlpha=1;
     if(currentScreen==='cutscene'&&[1,2].includes(shot)){fx.strokeStyle=shot===2?'#f8b3c0':'#acdff5';fx.lineWidth=2;fx.globalAlpha=.45;for(let i=0;i<3;i++){fx.beginPath();fx.ellipse(w*.6,h*.49,30+((shotElapsed*.25+i*.3)%1)*w*.2,20+((shotElapsed*.25+i*.3)%1)*h*.24,-.3,0,Math.PI*2);fx.stroke();}fx.globalAlpha=1;}
   }
   function tutorialArrow(x,y,lane,size,color,filled){tc.save();tc.translate(x,y);tc.rotate([Math.PI,Math.PI/2,-Math.PI/2,0][lane]);tc.beginPath();[[-.44,-.23],[.03,-.23],[.03,-.46],[.49,0],[.03,.46],[.03,.23],[-.44,.23]].forEach(([a,b],i)=>i?tc.lineTo(a*size,b*size):tc.moveTo(a*size,b*size));tc.closePath();tc.lineWidth=filled?2:3;tc.fillStyle=filled?color:'#161b32';tc.strokeStyle=color;tc.fill();tc.stroke();tc.restore();}
+  let tutorialBase=null,tutorialBaseKey='',tutorialDirty=true;
+  window.addEventListener('rr-settings',()=>{tutorialBaseKey='';tutorialDirty=true;});
   function renderTutorial(dt){
     if(!tutorialActive)return;const [w,h]=dims.get(tutorialCanvas)||[1,1],s=RR_SETTINGS.get(),rate=RR_SETTINGS.rate();
     tutorialFrozen=document.hidden||$('settingsDialog').open||$('safetyDialog').open;if(!tutorialFrozen)lessonElapsed+=dt;
-    tc.clearRect(0,0,w,h);const board=tc.createLinearGradient(0,0,0,h);board.addColorStop(0,'#58449ac9');board.addColorStop(1,'#2b638dc9');tc.fillStyle=s.highContrast?'#000':board;tc.fillRect(0,0,w,h);
     const colors=RR_GAME.palette(),target=h-52,laneW=w/4,size=Math.min(69*(s.scaleEnabled?s.arrowScale:1),laneW*.79),travel=3.2/rate/s.arrowSpeed;
+    const key=[w,h,s.highContrast,size,...colors].join('|');
+    if(key!==tutorialBaseKey){
+      tutorialBaseKey=key;tutorialDirty=true;tc.clearRect(0,0,w,h);
+    const board=tc.createLinearGradient(0,0,0,h);board.addColorStop(0,'#58449ac9');board.addColorStop(1,'#2b638dc9');tc.fillStyle=s.highContrast?'#000':board;tc.fillRect(0,0,w,h);
+
     for(let lane=0;lane<4;lane++){const x=(lane+.5)*laneW;tc.fillStyle=colors[lane]+'32';tc.fillRect(x-laneW/2+2,0,laneW-4,h);tc.strokeStyle='#ddd7ef33';tc.beginPath();tc.moveTo(x-laneW/2,0);tc.lineTo(x-laneW/2,h);tc.stroke();tutorialArrow(x,target,lane,size,colors[lane],false);tc.fillStyle='#e1e8ff';tc.font='bold 12px Trebuchet MS';tc.textAlign='center';tc.fillText(names[lane].toUpperCase(),x,h-17);}
+
+      tutorialBase=document.createElement('canvas');tutorialBase.width=tutorialCanvas.width;tutorialBase.height=tutorialCanvas.height;tutorialBase.getContext('2d').drawImage(tutorialCanvas,0,0);
+    }
+    if(!tutorialNote&&![2,3,4].includes(lesson)&&!tutorialDirty)return;
+    tc.clearRect(0,0,w,h);tc.drawImage(tutorialBase,0,0,w,h);tutorialDirty=false;
     const waiting=[3,4].includes(lesson)&&$('tutorialNext').disabled;
     if((lesson===2||waiting)&&!tutorialNote){const lane=lesson===2?Math.floor(lessonElapsed/4)%4:lesson===3?0:[0,1,2,3][tutorialHits];tutorialNote={lane,at:lessonElapsed+travel+.5};}
     if(tutorialNote){const n=tutorialNote,remaining=n.at-lessonElapsed,y=target-remaining*(target-20)/travel;
@@ -289,11 +302,11 @@
     }
     if(lesson===0||lesson===1||lesson===5){tc.fillStyle='#ffe6a9';tc.font=`bold ${Math.min(w/21,lesson===5?25:20)}px Trebuchet MS`;tc.textAlign='center';tc.fillText(lesson===5?'✦ Você encontrou a batida!':lesson===1?'←   ↓   ↑   →':'♫ Vamos encontrar a nossa batida?',w/2,h*.42);}
   }
-  let lastFxDraw=-1000;
+  let lastFxDraw=-1000,lastActorDraw=-1000;
   function frame(now){requestAnimationFrame(frame);const dt=Math.min(.05,(now-last)/1000);last=now;
     if(currentScreen==='game'||document.hidden||$('settingsDialog').open||document.body.classList.contains('warning-pending'))return;
     if(!document.hidden&&!(currentScreen==='cutscene'&&cinemaPaused))elapsed+=dt;
-    renderActor(dt);if(now-lastFxDraw>=32){renderFX();lastFxDraw=now;}renderTutorial(dt);if(currentScreen==='cutscene')renderSpeech();
+    if(currentScreen!=='tutorial'||now-lastActorDraw>=32){renderActor(currentScreen==='tutorial'?Math.min(.05,(now-lastActorDraw)/1000):dt);lastActorDraw=now;}if(now-lastFxDraw>=(currentScreen==='tutorial'?48:32)){renderFX();lastFxDraw=now;}renderTutorial(dt);if(currentScreen==='cutscene')renderSpeech();
     if(currentScreen==='cutscene'&&!cinemaPaused&&!document.hidden&&!$('settingsDialog').open){shotElapsed+=dt;if(shotElapsed>=shots[shot].duration)nextShot();}
   }
   document.addEventListener('pointerdown',event=>{
