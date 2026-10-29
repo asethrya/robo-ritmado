@@ -49,98 +49,44 @@
     {name:'Radiante',message:'Uau! Nosso show está brilhando!',color:'#ffe29b'}
   ];
   const textures=new WeakMap();
-  function face(ctx,box,mood,id,clip){
-    const [x,y,w,h,angle=0]=box;
-    ctx.save();
-    if(clip){ctx.beginPath();clip.forEach(([px,py],i)=>i?ctx.lineTo(px,py):ctx.moveTo(px,py));ctx.closePath();ctx.clip();}
-    ctx.translate(x,y);ctx.rotate(angle);ctx.scale(w,h);
-    // Only the LED display is repainted. Hair, face shell and outfit stay intact.
-    ctx.beginPath();ctx.ellipse(0,0,.5,.5,0,0,TAU);ctx.clip();
-    const glass=ctx.createLinearGradient(0,-.5,0,.5);glass.addColorStop(0,'#100e24');glass.addColorStop(1,'#080b1b');
-    ctx.fillStyle=glass;ctx.fillRect(-.55,-.55,1.1,1.1);
-    const color=id==='gelo'?'#94ebff':id==='ceu'?'#ffdf93':id==='brinquedos'?'#a3cfff':'#ff9bdf';
-    ctx.strokeStyle=color;ctx.fillStyle=color;ctx.lineWidth=.055;ctx.lineCap='round';ctx.lineJoin='round';
-    ctx.shadowColor=color;ctx.shadowBlur=3;
-    const curve=(x1,y1,cx,cy,x2,y2)=>{ctx.beginPath();ctx.moveTo(x1,y1);ctx.quadraticCurveTo(cx,cy,x2,y2);ctx.stroke();};
-    if(mood===0){
-      curve(-.33,-.02,-.23,-.18,-.12,-.12);curve(.12,-.12,.23,-.18,.33,-.02);
-      curve(-.12,.24,0,.11,.12,.24);
-      ctx.fillStyle='#a5dfff';ctx.beginPath();ctx.ellipse(.3,.15,.03,.07,-.2,0,TAU);ctx.fill();
-    }else if(mood===1){
-      for(const ex of [-.23,.23]){ctx.beginPath();ctx.moveTo(ex,-.19);ctx.lineTo(ex,-.03);ctx.stroke();}
-      curve(-.12,.2,0,.24,.12,.2);
-    }else if(mood===2){
-      ctx.beginPath();ctx.moveTo(-.29,-.1);ctx.lineTo(-.13,-.1);ctx.moveTo(-.21,-.19);ctx.lineTo(-.21,-.01);ctx.stroke();
-      curve(.12,-.06,.23,-.24,.34,-.06);curve(-.13,.17,0,.33,.14,.17);
-    }else{
-      for(const ex of [-.23,.23]){
-        if(mood!==4)curve(ex-.1,-.04,ex,-.23,ex+.1,-.04);
-        else {
-          ctx.save();ctx.translate(ex,-.1);ctx.lineWidth=.027;
-          if(id==='doces'){
-            ctx.beginPath();ctx.moveTo(0,.085);ctx.bezierCurveTo(-.2,-.025,-.09,-.19,0,-.075);ctx.bezierCurveTo(.09,-.19,.2,-.025,0,.085);ctx.fill();
-          }else if(id==='gelo'){
-            for(let n=0;n<6;n++){ctx.save();ctx.rotate(n*Math.PI/3);ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(0,-.11);ctx.stroke();ctx.restore();}
-          }else{
-            const points=id==='brinquedos'?5:4;ctx.beginPath();
-            for(let n=0;n<points*2;n++){const a=n*Math.PI/points-Math.PI/2,r=n%2?.045:.115;n?ctx.lineTo(Math.cos(a)*r,Math.sin(a)*r):ctx.moveTo(Math.cos(a)*r,Math.sin(a)*r);}ctx.closePath();ctx.fill();
-          }
-          ctx.restore();
-        }
-      }
-      if(mood===4){ctx.beginPath();ctx.moveTo(-.15,.13);ctx.quadraticCurveTo(0,.42,.15,.13);ctx.closePath();ctx.fill();}
-      else curve(-.14,.14,0,.35,.14,.14);
-      ctx.globalAlpha=.55;ctx.fillStyle='#ffa0df';for(const ex of [-.33,.33]){ctx.beginPath();ctx.ellipse(ex,.14,.06,.03,0,0,TAU);ctx.fill();}
-    }
+  function face(ctx,box,mood,id,clip,mouth,tears){
+    // The original face and original eyes are never repainted. Only a small
+    // mouth patch below the eyes and two cheek tear paths may change.
+    if(mood===2||!mouth)return;
+    const [x,y,w,h,angle,skin,ink]=mouth;
+    ctx.save();ctx.translate(x,y);ctx.rotate(angle);
+    ctx.fillStyle=skin;ctx.beginPath();ctx.ellipse(0,0,w*.65,h*.8,0,0,TAU);ctx.fill();
+    ctx.strokeStyle=ink;ctx.lineWidth=Math.max(1,w*.11);ctx.lineCap='round';ctx.lineJoin='round';
+    ctx.shadowColor=ink;ctx.shadowBlur=1.2;ctx.beginPath();ctx.moveTo(-w*.48,mood===0?h*.25:-h*.2);
+    ctx.quadraticCurveTo(0,mood===0?-h*.65:h*.75,w*.48,mood===0?h*.25:-h*.2);ctx.stroke();
+    if(mood===4){ctx.globalAlpha=.3;ctx.lineWidth=Math.max(.7,w*.045);ctx.translate(0,h*.16);ctx.stroke();}
     ctx.restore();
+    if(mood===0&&tears){
+      ctx.save();ctx.strokeStyle='#8ce6ff';ctx.fillStyle='#b9f4ff';ctx.lineCap='round';ctx.lineWidth=Math.max(1,w*.085);
+      for(const [tx,ty,dx,dy]of tears){ctx.beginPath();ctx.moveTo(tx,ty);ctx.quadraticCurveTo(tx+dx*.3,ty+dy*.45,tx+dx,ty+dy);ctx.stroke();ctx.beginPath();ctx.ellipse(tx+dx,ty+dy,w*.085,h*.23,-.12,0,TAU);ctx.fill();}
+      ctx.restore();
+    }
   }
-  function texture(image,rect,box,mood,id,clip){
+  function texture(image,rect,box,mood,id,clip,mouth,tears){
     let cache=textures.get(image);if(!cache){cache=new Map();textures.set(image,cache);}
+    mood=mood===0?0:mood>=3?4:2;
     const key=rect.join(',')+':'+mood+':'+id;if(cache.has(key))return cache.get(key);
     const c=document.createElement('canvas');c.width=rect[2];c.height=rect[3];const cx=c.getContext('2d');
-    cx.drawImage(image,...rect,0,0,c.width,c.height);if(box)face(cx,box,mood,id,clip);cache.set(key,c);return c;
+    cx.drawImage(image,...rect,0,0,c.width,c.height);if(box)face(cx,box,mood,id,clip,mouth,tears);cache.set(key,c);return c;
   }
-  // A single continuous textured surface keeps the anatomy connected. Shared
-  // vertices gently bend knees and alternate toe taps; no limb is detached.
   function body(ctx,texture,x,floor,scale,p){
-    const w=texture.width,h=texture.height;
-    ctx.save();ctx.translate(x,floor-h*scale*p.lift);ctx.rotate(p.lean);
-    const cols=6,rows=16,vertices=[];
-    for(let j=0;j<=rows;j++)for(let i=0;i<=cols;i++){
-      const u=i/cols,v=j/rows,sx=u*w,sy=v*h,lower=smooth((v-.57)/.4);
-      const left=1-smooth((u-.4)/.2),right=1-left;
-      const dx=(p.bend*Math.sin(v*Math.PI)+p.step*Math.sin(v*TAU)*lower)*h;
-      const dy=-(p.leftFoot*left+p.rightFoot*right)*lower*h+p.lift*lower*h;
-      vertices.push({sx,sy,x:(sx-w/2+dx)*scale,y:(sy-h+dy)*scale});
+    const gpu=window.RR_MESH?.draw(ctx,texture,x,floor,scale,p);
+    if(!gpu){
+      // A cheap stable fallback for devices with unavailable/lost WebGL.
+      ctx.save();ctx.translate(x,floor-texture.height*scale*p.lift);ctx.rotate(p.lean);
+      ctx.drawImage(texture,-texture.width*scale/2,-texture.height*scale,texture.width*scale,texture.height*scale);ctx.restore();
     }
-    function triangle(a,b,c){
-      // Source triangles are axis aligned, making the affine mapping exact.
-      const det=(b.sx-a.sx)*(c.sy-a.sy)-(c.sx-a.sx)*(b.sy-a.sy);
-      const A=((b.x-a.x)*(c.sy-a.sy)-(c.x-a.x)*(b.sy-a.sy))/det;
-      const C=((c.x-a.x)*(b.sx-a.sx)-(b.x-a.x)*(c.sx-a.sx))/det;
-      const B=((b.y-a.y)*(c.sy-a.sy)-(c.y-a.y)*(b.sy-a.sy))/det;
-      const D=((c.y-a.y)*(b.sx-a.sx)-(b.y-a.y)*(c.sx-a.sx))/det;
-      ctx.save();ctx.beginPath();
-      const mx=(a.x+b.x+c.x)/3,my=(a.y+b.y+c.y)/3;
-      for(const [i,v] of [a,b,c].entries()){
-        const len=Math.hypot(v.x-mx,v.y-my)||1,px=v.x+(v.x-mx)/len*.22,py=v.y+(v.y-my)/len*.22;
-        i?ctx.lineTo(px,py):ctx.moveTo(px,py);
-      }
-      ctx.closePath();ctx.clip();ctx.transform(A,B,C,D,a.x-A*a.sx-C*a.sy,a.y-B*a.sx-D*a.sy);
-      // Keep the complete texture under each clip. Cropping it to each cell
-      // creates sampler seams along the cell borders at fractional scales.
-      ctx.drawImage(texture,0,0);ctx.restore();
-    }
-    for(let j=0;j<rows;j++)for(let i=0;i<cols;i++){
-      const a=vertices[j*(cols+1)+i],b=vertices[j*(cols+1)+i+1],c=vertices[(j+1)*(cols+1)+i],d=vertices[(j+1)*(cols+1)+i+1];
-      triangle(a,b,c);triangle(b,d,c);
-    }
-    ctx.restore();
-    return {x,floor:floor-h*scale*p.lift,height:h*scale,lean:p.lean};
+    return {x,floor:floor-texture.height*scale*p.lift,height:texture.height*scale,lean:p.lean,backend:gpu?'webgl':'canvas-fallback',bodyDrawCalls:1};
   }
-  function platform(ctx,{width,height,floor,x,id,colors,accent,power,beat,soft,still}){
+  const stages=new Map();
+  function staticPlatform(ctx,{width,height,floor,x,id,colors,accent,power,beat,soft,still}){
     ctx.clearRect(0,0,width,height);
-    const targetX=x;x=width*.52;
+    x=width*.52;
     const rx=width*.44,ry=Math.min(28,width*.073),cy=floor-5,depth=Math.min(24,width*.06),intensity=soft?.12:.25+power*.55;
     const tint=id==='doces'?'#59325e':id==='brinquedos'?'#2d4772':id==='gelo'?'#253957':'#49405e';
     ctx.save();
@@ -178,30 +124,71 @@
       else {ctx.font='16px Trebuchet MS';ctx.textAlign='center';ctx.fillText('✦',0,5);}
       ctx.restore();
     }
-    // Stage-mounted moving fixtures aim at the same dancer center.
-    for(const side of [-1,1]){
-      const sx=width*.5+side*rx*.86,sy=cy-ry*.1;
-      const base=side===-1?0:1,color=mixColor(colors[base],colors[base+2],smooth((power-.25)/.75));
-      const target=targetX+Math.sin(still?0:beat*Math.PI/4)*width*.015;
-      if(!soft){
-        const beam=ctx.createLinearGradient(sx,sy,target,sy-height*.75);
-        beam.addColorStop(0,color+'90');beam.addColorStop(.6,color+'25');beam.addColorStop(1,color+'00');
-        ctx.globalAlpha=intensity;ctx.fillStyle=beam;ctx.beginPath();ctx.moveTo(sx-4,sy);ctx.lineTo(target-width*.23,sy-height*.84);ctx.quadraticCurveTo(target,sy-height*.94,target+width*.23,sy-height*.84);ctx.lineTo(sx+4,sy);ctx.closePath();ctx.fill();ctx.globalAlpha=1;
-      }
-      ctx.save();ctx.translate(sx,sy);ctx.rotate(side*.27);ctx.fillStyle='#28243f';ctx.strokeStyle='#eee4ff';ctx.lineWidth=2;
-      ctx.beginPath();ctx.roundRect(-11,-6,22,15,4);ctx.fill();ctx.stroke();ctx.fillStyle=color;ctx.shadowColor=color;ctx.shadowBlur=soft?0:8+power*12;
-      ctx.beginPath();ctx.ellipse(0,-5,8,4,0,0,TAU);ctx.fill();ctx.restore();
-    }
     ctx.restore();
-    return {theme:id,center:x,floor:cy,power,intensity,fixtures:2,following:true};
+  }
+  function lighting(ctx,{width,height,floor,x,colors,power=0,beat=0,soft=false,still=false,deluxe=false}){
+    const intensity=soft?.12:.38+power*.57,center=width*.52;
+    ctx.save();
+    if(!soft&&!deluxe){
+      ctx.strokeStyle='#ded4ff80';ctx.lineWidth=deluxe?5:3;ctx.beginPath();ctx.moveTo(width*.12,height*.065);ctx.lineTo(width*.9,height*.065);ctx.stroke();
+    }
+    for(let n=0;n<4;n++){
+      const top=n>=2,side=n%2?1:-1;
+      const sx=center+side*width*(top?.36:.38),sy=top?height*.085:floor-6;
+      const target=x+Math.sin(still?0:beat*Math.PI/4+n)*width*.018;
+      const ty=top?floor-8:height*.2,spread=width*(top?.2:.19);
+      const color=mixColor(colors[n%4],colors[(n+1)%4],smooth(power));
+      if(!soft){
+        const beam=ctx.createLinearGradient(sx,sy,target,ty);beam.addColorStop(0,color+'d5');beam.addColorStop(.5,color+'70');beam.addColorStop(1,color+'12');
+        ctx.save();ctx.globalCompositeOperation='lighter';ctx.globalAlpha=intensity*(deluxe?.76:.65);ctx.fillStyle=beam;
+        ctx.beginPath();ctx.moveTo(sx-4,sy);ctx.lineTo(target-spread,ty);ctx.quadraticCurveTo(target,ty+(top?15:-15),target+spread,ty);ctx.lineTo(sx+4,sy);ctx.closePath();ctx.fill();
+        ctx.strokeStyle=beam;ctx.lineWidth=1.4;ctx.beginPath();ctx.moveTo(sx,sy);ctx.lineTo(target,ty);ctx.stroke();
+        if(top){ctx.fillStyle=color+'50';ctx.beginPath();ctx.ellipse(target,floor-6,width*.18,10+power*7,0,0,TAU);ctx.fill();}
+        ctx.restore();
+      }
+      ctx.save();ctx.translate(sx,sy);ctx.rotate((top?-1:1)*side*.25);ctx.fillStyle='#28233d';ctx.strokeStyle='#f1e8ff';ctx.lineWidth=1.5;
+      ctx.beginPath();ctx.roundRect(-11,-6,22,15,4);ctx.fill();ctx.stroke();ctx.fillStyle=color;ctx.shadowColor=color;ctx.shadowBlur=soft?0:10+power*15;ctx.beginPath();ctx.ellipse(0,top?7:-5,8,4,0,0,TAU);ctx.fill();ctx.restore();
+    }
+    if(!soft){
+      ctx.strokeStyle=colors[1]+'a0';ctx.lineWidth=1.5;ctx.beginPath();ctx.ellipse(center,floor-4,width*.4,Math.min(23,width*.055),0,0,TAU);ctx.stroke();
+      if(power>.45||deluxe){
+        for(let i=0;i<8;i++){
+          const phase=((beat*.08+i/8)%1+1)%1,alpha=Math.sin(phase*Math.PI)*intensity;
+          ctx.globalAlpha=alpha;ctx.fillStyle=colors[i%4];const px=center+Math.sin(i*2.3+beat*.12)*width*.42,py=floor-height*(.08+phase*.68);
+          ctx.beginPath();ctx.moveTo(px,py-4);ctx.lineTo(px+2,py);ctx.lineTo(px,py+4);ctx.lineTo(px-2,py);ctx.closePath();ctx.fill();
+        }
+      }
+    }
+    ctx.restore();return{intensity,fixtures:4,topFixtures:2,bottomFixtures:2,following:true,topProjected:true};
+  }
+  function platform(ctx,o){
+    const {width,height,floor,id,colors,accent,power,x}=o;
+    const key=[Math.round(width),Math.round(height),Math.round(floor),id,...colors,accent].join('|');
+    let base=stages.get(key);
+    if(!base){
+      if(stages.size>=6)stages.delete(stages.keys().next().value);
+      base=document.createElement('canvas');base.width=Math.ceil(width*1.25);base.height=Math.ceil(height*1.25);const cx=base.getContext('2d');cx.scale(1.25,1.25);staticPlatform(cx,o);stages.set(key,base);
+    }
+    ctx.clearRect(0,0,width,height);ctx.drawImage(base,0,0,width,height);
+    return{theme:id,center:width*.52,floor:floor-5,power,...lighting(ctx,o),cachedBase:true};
   }
   function draw(ctx,image,level,{width,height,beat,progress,amount,mood=2,soft=false}){
     const rect=level.frames[0],scale=Math.min(width*.9/(level.designWidth||440),height*.94/(level.designHeight||552));
     const p=pose(level.id,beat,progress,amount),x=width*.52+p.x*Math.min(height,width*1.1),floor=height*.965;
-    const tex=texture(image,rect,level.face,mood,level.id,level.faceClip);
+    const tex=texture(image,rect,level.face,mood,level.id,level.faceClip,level.mouth,level.tears);
     ctx.save();ctx.fillStyle='#15142e66';ctx.beginPath();ctx.ellipse(x,floor-2,rect[2]*scale*.28,7*scale,0,0,TAU);ctx.fill();ctx.restore();
     const model=body(ctx,tex,x,floor,scale,p);
+    if(mood===0&&!soft&&level.tears){
+      // Tiny moving drops follow the cheek streams, always below the eyes.
+      ctx.save();ctx.translate(x,floor-tex.height*scale*p.lift);ctx.rotate(p.lean);ctx.fillStyle='#bdf6ff';
+      for(const [i,[tx,ty,dx,dy]] of level.tears.entries()){
+        const t=((beat*.22+i*.43)%1+1)%1,px=tx+dx*t,py=ty+dy*t,v=py/tex.height;
+        const bend=p.bend*Math.sin(v*Math.PI)*tex.height;
+        ctx.beginPath();ctx.ellipse((px-tex.width/2+bend)*scale,(py-tex.height)*scale,Math.max(.8,level.mouth[2]*scale*.065),Math.max(1.2,level.mouth[3]*scale*.23),-.12,0,TAU);ctx.fill();
+      }
+      ctx.restore();
+    }
     return {...model,phrase:p.phrase,pose:p,scale,frame:0,connected:true,mood:moods[mood].name};
   }
-  window.RR_PERFORMANCE=Object.freeze({definitions,pose,moods,draw,platform,texture});
+  window.RR_PERFORMANCE=Object.freeze({definitions,pose,moods,draw,platform,texture,lighting});
 })();

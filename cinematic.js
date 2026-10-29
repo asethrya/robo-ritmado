@@ -19,7 +19,7 @@
     const ready=Promise.all([standard.ready,candy.ready,story.ready,guitar.ready]).then(()=>{
       RR_SPRITES.validate(standard.image,RR_SPRITES.standard);RR_SPRITES.validate(candy.image,RR_SPRITES.cells());RR_SPRITES.validate(story.image,RR_SPRITES.story.map(f=>f.r));
     });ready.catch(()=>{});
-    new ResizeObserver(()=>{const b=canvas.getBoundingClientRect();w=Math.max(1,b.width);h=Math.max(1,b.height);dpr=Math.min(devicePixelRatio||1,2);canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);}).observe(canvas);
+    new ResizeObserver(()=>{const b=canvas.getBoundingClientRect();w=Math.max(1,b.width);h=Math.max(1,b.height);dpr=Math.min(devicePixelRatio||1,1.5);canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);}).observe(canvas);
     function star(x,y,r,angle=0){ctx.beginPath();for(let i=0;i<10;i++){const a=angle+i*Math.PI/5-Math.PI/2,rr=i%2?r*.42:r;i?ctx.lineTo(x+Math.cos(a)*rr,y+Math.sin(a)*rr):ctx.moveTo(x+Math.cos(a)*rr,y+Math.sin(a)*rr);}ctx.closePath();}
     function portal(x,y,rx,ry,time,open=1,front=false){
       if(open<=.01)return;const gentle=RR_SETTINGS.gentle(),safe=RR_SETTINGS.get().sensitivity;

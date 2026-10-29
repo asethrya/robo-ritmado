@@ -1,54 +1,45 @@
-# Robô Ritmado — versão 0.8 · Um palco em cada mundo
+# Robô Ritmado — versão 0.9 · O show é seu!
 
-Jogo musical para crianças de 5 a 11 anos. Abra **Abrir-jogo.cmd** ou **index.html** no Chrome/Edge. Para compartilhar, extraia o ZIP completo antes de abrir. Funciona sem instalação, servidor ou internet.
+Jogo musical infantil com Pixel. Extraia a pasta completa e abra **Abrir-jogo.cmd** ou **index.html** no Chrome/Edge. Não é preciso instalar bibliotecas, usar servidor ou permanecer conectado à internet.
 
-## Esta atualização
+## As seis etapas desta entrega
 
-A base é a versão 0.6. Os acabamentos de **menu, aviso, configurações, tutorial e pistas** foram recuperados da 0.7: paleta de Pixel, títulos arredondados, botões grandes em relevo, balões, respostas sonoras, pistas maiores e bordas por tema. O menu usa exatamente o cenário OrbitHop da 0.7 e o outfit padrão de Pixel.
+1. **Rosto original.** Os olhos, visor, cabelo e proporções voltaram às ilustrações originais. As expressões modificam apenas uma pequena região da boca e acrescentam lágrimas nas bochechas: boca voltada para baixo quando triste, sorriso mais evidente quando feliz. Os olhos não são redesenhados em nenhum estado. As lágrimas têm pequenos pingos em movimento, abaixo dos olhos.
+2. **Iluminação de show.** Cada fase tem dois holofotes inferiores e dois superiores, com feixes coloridos dirigidos a Pixel, manchas de luz no piso, brilhos e intensidade que responde aos acertos. Sensibilidade Visual mantém as luzes suaves e sem feixes animados.
+3. **Pixel conversa.** Balões com cauda apontada ao personagem aparecem enquanto ele dança. Há falas variadas de acolhimento, recuperação e celebração. Erros recebem incentivo; acertos e combos recebem elogios. As falas permanecem tempo suficiente para leitura, sem ocupar as pistas.
+4. **Palco de OrbitHop.** Um palco exclusivo do menu, mais elaborado que os das fases, com colunas, arco, cristais, degraus, notas, estrelas e iluminação. Pixel fica no centro do piso, mantendo o outfit padrão.
+5. **Menu em painéis.** Estrutura de grandes cartões inclinados inspirada na referência fornecida, adaptada à paleta rosa, violeta, ciano e branco. Mantidos Jogar, Tutorial, Opções, Acessibilidade e Sobre Nós, além de Continuar partida quando há uma sessão pausada. Os botões preservam sons de hover/click e têm movimentos e brilhos próprios. OrbitHop continua ao fundo; Pixel permanece à direita.
+6. **Renderização otimizada.** O corpo inteiro é desenhado em uma passagem WebGL, substituindo 192 recortes Canvas por quadro. Se WebGL não estiver disponível, uma alternativa Canvas leve mantém Pixel inteiro. Bases dos palcos e texturas são reaproveitadas; os limites de resolução dos efeitos foram ajustados; leituras contínuas de layout foram removidas; telas ocultas e pausadas deixam de redesenhar o que não mudou. O fundo suave da pista é uma camada de imagem estática, sem recalcular blur do cenário inteiro a cada quadro.
 
-A montagem do corpo em partes separadas da 0.7 foi retirada. Pixel permanece uma **ilustração completa e conectada**, com movimento 2D contínuo, pequenos passos alternados, balanço de torso e deslocamento lateral. Cada mundo tem uma sequência própria que cresce ao longo da música. Não há simulação física de ragdoll, membros soltos, troca aleatória de poses ou saltos de reação. A escala de referência do desenho foi mantida; o palco foi acrescentado atrás dos pés. São animações 2D ilustradas, sem captura de movimento ou modelo 3D.
+## A aventura continua com quatro mundos
 
-Os arquivos dos outfits de doces e brinquedos da 0.6 foram preservados sem alterações. Os dois novos desenhos de corpo inteiro seguem os outfits originais fornecidos para gelo e Paraíso, incluindo guitarras e acessórios. O visor recebe expressões em LED; cabelo, roupas e contorno do rosto são preservados.
+| Fase | Música | Tema |
+| --- | --- | --- |
+| Reino dos Doces | Doce Travessia · 90 BPM | Pop suave, confeitos e cristais |
+| Brinquedolândia | Desfile dos Brinquedos · 104 BPM | Caixa de música, blocos e estrelas |
+| Castelo Invernal | Valsa dos Cristais · 84 BPM | Valsa em três tempos e gelo |
+| Paraíso | Órbita das Nuvens · 96 BPM | Harpa, sinos e nuvens |
 
-## Quatro mundos
+As músicas, mapas de notas, coreografias e outfits de cada mundo foram mantidos. O menu toca **Órbita de Casa**, 78 BPM. Complete a música e alcance a meta para abrir cada portal; os pontos são preservados na viagem.
 
-| Mundo | Música | Estilo e dança | Palco |
-| --- | --- | --- | --- |
-| Reino dos Doces | Doce Travessia · 90 BPM | Pop de confeitaria; balanço e passos de nuvem | Cobertura, confeitos e luz rosa |
-| Brinquedolândia | Desfile dos Brinquedos · 104 BPM | Caixa de música e madeira; desfile e deslizes | Blocos, estrelas e luz azul |
-| Castelo Invernal | Valsa dos Cristais · 84 BPM | Valsa em **3 tempos**, piano/cordas sintetizados; pliés e passos inspirados em ballet | Cristal facetado e luz ciano |
-| Paraíso | Órbita das Nuvens · 96 BPM | Harpa e sinos sintetizados; ondas e movimentos contemporâneos | Nuvens, dourado e órbitas |
+## Como jogar
 
-As composições, harmonias, mapas de notas e arranjos são distintos. O menu tem uma quinta composição própria: **Órbita de Casa**, 78 BPM. O som começa após uma interação permitida pelo navegador.
+Use **← ↓ ↑ →** ou os botões de toque quando a nota alcançar o alvo correspondente. **Esc** pausa. **Menu** pausa a partida e volta ao início; **Continuar partida** retoma do mesmo ponto. “No ritmo!” vale 100 pontos; “Muito bem!”, 60; “Quase!”, 20. Há ajuste de atraso entre áudio e comando.
 
-Complete cada música e alcance a meta para abrir o portal. Os pontos viajam com Pixel; repetir um mundo começa um placar novo e não duplica pontos. Há três transições e nenhum destino inexistente após a quarta fase.
+**Jogar** mantém a abertura em dez cenas, com o portal, chegada ao Reino dos Doces e recuperação da guitarra. **Tutorial** ensina as quatro direções e uma sequência de notas, com pontos de treino separados. **Sobre Nós** mantém a mensagem temporária de trabalho em andamento.
 
-## Cenários e leitura
+## Acessibilidade
 
-Os quatro fundos são edições das imagens originais: mesmos temas, marcos, portais e perspectiva. Foram removidos pequenos elementos repetidos e suavizados reflexos e detalhes, especialmente no lado de Pixel. Não há fundo liso substituindo o cenário. Uma camada atmosférica suave atrás do personagem e a base do palco reforçam a separação visual.
+O aviso de fotossensibilidade aparece antes das animações e da música, com acesso direto a Acessibilidade. Permanecem os três ajustes de daltonismo, alto contraste, tamanhos de interface/legendas/setas, dança mais lenta, velocidade reduzida de jogo, legendas descritivas e Sensibilidade Visual. As preferências ficam salvas no navegador. Os sons só começam após uma interação permitida pelo navegador.
 
-A pista ocupa 65% da largura útil no computador, com fundo translúcido, setas maiores, decoração e brilhos temáticos. Os efeitos não mudam a janela de acerto.
+## Arquivos e validação
 
-## Expressões e holofotes
+- `gpu-dancer.js`: desenho acelerado do personagem, com saída alternativa segura.
+- `performance.js`: movimentos, alterações localizadas da boca, lágrimas e palcos/luzes.
+- `encore.css`: novos painéis do menu, palco e balões.
+- `game.js`: música, notas, pontuação, progressão e falas por desempenho.
+- `assets/palco-orbithop-v09.png`: palco transparente do menu.
+- `assets/GERACAO-09.md`: referências e prompt da arte gerada.
+- `VALIDACAO-09.md`: verificações e medições desta versão.
 
-Cinco expressões aparecem no próprio visor e em um retrato ampliado: **Tristinho, Concentrado, Animando, Feliz e Radiante**. A resposta considera os últimos dez julgamentos, a precisão da fase, o combo e a pontuação. Os erros deixam Pixel visivelmente triste; uma sequência de acertos recupera a expressão gradualmente. As mensagens continuam acolhedoras. A partida começa com expressão amigável, sem penalizar a falta de pontos antes da primeira nota.
-
-Cada palco tem dois holofotes montados na base, apontados para a região do personagem e acompanhando seu deslocamento. As luzes ganham intensidade e mudam entre as cores do tema conforme pontos, precisão e combo crescem. O palco permanece fixo, e a sombra mantém contato com o chão.
-
-## Menu e acessibilidade
-
-- **Jogar:** prólogo em dez cenas com balões, portal, sucção, chegada, queda, recuperação da guitarra e começo da aventura. Mantém as ilustrações completas da abertura 0.6.
-- **Tutorial:** seis etapas com demonstração e prática, quatro direções, notas e sequência final. Pontos do ensaio não entram na campanha.
-- **Opções:** volumes da fase, efeitos e menu; velocidade das setas.
-- **Acessibilidade:** protanopia, deuteranopia, tritanopia; escala de interface, legendas e setas; dança mais lenta; alto contraste; legendas descritivas; velocidade do jogo reduzida; Sensibilidade Visual.
-- **Sobre Nós:** mensagem “Estamos Trabalhando Nisso por enquanto!!”.
-
-O aviso de fotossensibilidade reaparece ao abrir/recarregar, antes das animações e do áudio, com acesso direto à Acessibilidade. Sensibilidade Visual estabiliza a dança e reduz partículas, flashes e holofotes; as expressões continuam comunicando o desempenho. Redução de Movimento diminui a dança sem alterar a velocidade da música. As preferências ficam salvas neste navegador.
-
-## Controles
-
-**← ↓ ↑ →** ou botões de toque para acertar as notas. **Esc** pausa. **Menu** pausa e volta ao menu; **Continuar partida** retoma. O ajuste de ritmo compensa atraso de áudio/comando. **No ritmo!** vale 100 pontos; **Muito bem!**, 60; **Quase!**, 20.
-
-## Arquivos
-
-`game.js` controla notas, áudio, progressão, desempenho e palco. `performance.js` desenha corpo completo, expressões, movimentos e luzes. `performance.css` contém os acréscimos de palco; `wonder.css` mantém os acabamentos recuperados da 0.7. `assets/GERACAO-08.md` registra referências, ferramentas, prompts e arquivos de arte. Os desenhos e cenários anteriores permanecem disponíveis no projeto e no histórico Git.
+Os arquivos de imagem dos personagens e dos cenários anteriores foram preservados. A animação continua sendo 2D, com corpo conectado e movimentos limitados para manter a aparência de Pixel.

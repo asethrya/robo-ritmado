@@ -28,7 +28,7 @@
         </nav><p class="menu-hint"><kbd>Tab</kbd> para navegar · <kbd>Enter</kbd> para escolher<br>Jogue no seu tempo. Ajuste em Acessibilidade.</p>
       </div>
       <div id="portalScene" class="cinema-portal" aria-hidden="true"></div>
-      <div id="orbitActor" class="actor-wrap"><div class="actor-plinth" aria-hidden="true"></div><canvas id="orbitPixel" role="img" aria-label="Pixel com seu outfit padrão e guitarra estrela, tocando devagar em OrbitHop"></canvas></div>
+      <div id="orbitActor" class="actor-wrap"><div class="actor-plinth" aria-hidden="true"></div><canvas id="menuStage" class="menu-stage" aria-hidden="true"></canvas><canvas id="orbitPixel" role="img" aria-label="Pixel com seu outfit padrão e guitarra estrela, tocando devagar em OrbitHop"></canvas></div>
       <div id="pixelGreeting" class="pixel-greeting"><b>Oi, eu sou Pixel!</b><br>Bora fazer uma música e viajar pelas estrelas?</div><button id="sayHello" class="say-hello" data-cue="tutorial">♡ Oi, Pixel!</button><div id="loadingTrip" class="toast" role="status" hidden>✦ Preparando nossa viagem…</div><div id="pixelName" class="pixel-name"><i></i><div>PIXEL<small>SOM QUE CONECTA MUNDOS</small></div></div>
       <div id="cinemaUI" class="cinema-ui" hidden>
         <div class="cinema-top"><div class="cinema-place"><span id="sceneNumber">PRÓLOGO / 01</span><h2 id="scenePlace">OrbitHop, lar de Pixel</h2></div><div class="view-toolbar"><button id="pauseCinema" class="quiet-button" data-cue="options">Pausar cena</button><button id="skipCinema" class="quiet-button" data-cue="back">Pular introdução</button></div></div>
@@ -78,7 +78,7 @@
   appActions.innerHTML = '<button id="gameMenu" class="quiet-button" data-cue="back" aria-label="Pausar e voltar ao menu">☰ <span class="settings-label">Menu</span></button><button id="gameAccessibility" class="quiet-button" data-cue="accessibility" aria-label="Abrir Acessibilidade">◎</button>';
   document.querySelector('.top-actions').prepend(appActions);
   document.querySelector('.brand').addEventListener('click',e=>{e.preventDefault();returnMenu();});
-  document.querySelector('footer span:last-child').textContent='VERSÃO 0.8 • QUATRO MUNDOS PRA BRINCAR!';
+  document.querySelector('footer span:last-child').textContent='VERSÃO 0.9 • QUATRO MUNDOS PRA BRINCAR!';
   const buttonInfo={menuPlay:['Jogar','Começar a aventura'],menuTutorial:['Tutorial','Aprender com Pixel'],menuOptions:['Opções','Ajustar sons e velocidade'],menuAccessibility:['Acessibilidade','Do seu jeitinho'],menuAbout:['Sobre Nós','Conheça nossa turma']};
   for(const [id,[title,sub]] of Object.entries(buttonInfo)){const button=$(id);button.setAttribute('aria-label',title);for(const node of [...button.childNodes])if(node.nodeType===Node.TEXT_NODE)node.remove();const label=document.createElement('span');label.className='button-copy';label.innerHTML='<b>'+title+'</b><small>'+sub+'</small>';button.insertBefore(label,button.querySelector('.button-arrow'));}
   let greetingUntil=0;
@@ -235,15 +235,23 @@
   const frames=[[0,0,418,526],[427,0,367,518],[797,0,366,519],[1166,0,370,520],[0,533,445,480],[448,520,340,494],[790,533,369,480],[1160,559,376,451]];
   const actorCanvas=$('orbitPixel'),act=actorCanvas.getContext('2d'),fxCanvas=$('orbitFx'),fx=fxCanvas.getContext('2d'),tutorialCanvas=$('tutorialCanvas'),tc=tutorialCanvas.getContext('2d');
   const dims=new Map();
+  const menuStage=$('menuStage'),menuStageCtx=menuStage.getContext('2d'),menuStageAsset=RR_SPRITES.load('assets/palco-orbithop-v09.png');
+  let menuActorBox={x:0,y:0,w:1,h:1};
+  function paintMenuStage(){
+    const [w,h]=dims.get(actorCanvas)||[1,1],d=Math.min(devicePixelRatio||1,1.5);menuStage.width=Math.round(w*d);menuStage.height=Math.round((h+120)*d);menuStageCtx.setTransform(d,0,0,d,0,0);menuStageCtx.clearRect(0,0,w,h+120);
+    if(menuStageAsset.image.complete&&menuStageAsset.image.naturalWidth){const size=w*.98;menuStageCtx.drawImage(menuStageAsset.image,w*.51-size*.5,h*.86-size*.755,size,size);}
+  }
+  menuStageAsset.ready.then(paintMenuStage).catch(()=>{});
   for(const canvas of [actorCanvas,fxCanvas,tutorialCanvas])new ResizeObserver(()=>{
-    const b=canvas.getBoundingClientRect(),d=Math.min(devicePixelRatio||1,2),w=Math.max(1,b.width),h=Math.max(1,b.height);
+    const b=canvas.getBoundingClientRect(),d=canvas===fxCanvas?1:Math.min(devicePixelRatio||1,1.5),w=Math.max(1,b.width),h=Math.max(1,b.height);
     canvas.width=Math.round(w*d);canvas.height=Math.round(h*d);canvas.getContext('2d').setTransform(d,0,0,d,0,0);dims.set(canvas,[w,h]);
+    if(canvas===actorCanvas){menuActorBox={x:$('orbitActor').offsetLeft,y:$('orbitActor').offsetTop,w,h};paintMenuStage();}
   }).observe(canvas);
   let last=performance.now(),elapsed=0,actorTime=0,tutorialFrozen=false;
   function actorPose(image,rect,w,h,alpha=1,sway=0){
     if(!image.complete||!image.naturalWidth)return;
-    const [sx,sy,sw,sh]=rect,scale=Math.min(w*.96/465,h*.94/530);
-    act.save();act.globalAlpha=alpha;act.translate(w*.51,h*.97);act.rotate(sway);act.drawImage(image,sx,sy,sw,sh,-sw*scale/2,-sh*scale,sw*scale,sh*scale);act.restore();
+    const [sx,sy,sw,sh]=rect,scale=Math.min(w*.96/465,h*(currentScreen==='menu'?.75:.94)/530);
+    act.save();act.globalAlpha=alpha;act.translate(w*.51,h*(currentScreen==='menu'?.86:.97));act.rotate(sway);act.drawImage(image,sx,sy,sw,sh,-sw*scale/2,-sh*scale,sw*scale,sh*scale);act.restore();
   }
   function renderActor(dt){
     const [w,h]=dims.get(actorCanvas)||[1,1];act.clearRect(0,0,w,h);
@@ -254,11 +262,12 @@
     const sway=motion===0?0:Math.sin(actorTime*.7)*.009;
     // A single complete pose avoids overlapping silhouettes during slow motion.
     actorPose(actorImage,frames[f],w,h,1,sway);
-    $('orbitActor').style.transform='none';$('orbitActor').style.opacity='';
+
   }
   const motes=Array.from({length:38},(_,i)=>({x:(i*.618033)%1,y:(i*.371)%1,s:10+(i%4)*5,speed:.018+(i%5)*.004,symbol:i%5===0?'♬':i%3===0?'♩':i%4===0?'✧':'♪'}));
   function guitarIcon(x,y,size,rot){fx.save();fx.translate(x,y);fx.rotate(rot);fx.strokeStyle='#a9daf5';fx.lineWidth=1.4;fx.beginPath();fx.ellipse(0,4,size*.24,size*.34,-.4,0,Math.PI*2);fx.stroke();fx.beginPath();fx.moveTo(2,0);fx.lineTo(size*.44,-size*.7);fx.lineTo(size*.52,-size*.65);fx.lineTo(8,6);fx.stroke();fx.restore();}
   function renderFX(){const [w,h]=dims.get(fxCanvas)||[1,1];fx.clearRect(0,0,w,h);if(RR_SETTINGS.gentle()||$('settingsDialog').open||document.body.classList.contains('warning-pending'))return;
+    if(currentScreen==='menu'){const b=menuActorBox;fx.save();fx.translate(b.x,b.y);RR_PERFORMANCE.lighting(fx,{width:b.w,height:b.h,floor:b.h*.86,x:b.w*.51,colors:['#f67bda','#7edfff','#b7a1ff','#fff0be'],power:.8,beat:actorTime*.4,soft:RR_SETTINGS.gentle(),still:RR_SETTINGS.motion()===0,deluxe:true});fx.restore();}
     fx.textAlign='center';for(const [i,p] of motes.entries()){const x=p.x*w+Math.sin(elapsed*.12+i)*18,y=h-((p.y+elapsed*p.speed)%1)*h;fx.globalAlpha=.15+Math.sin((y/h)*Math.PI)*.3;fx.fillStyle=i%2?'#a2d9f2':'#f3a5df';fx.font=`${p.s}px Segoe UI`;fx.fillText(p.symbol,x,y);}
     fx.globalAlpha=.28;guitarIcon(w*.84,h*.25,56,Math.sin(elapsed*.15)*.2);guitarIcon(w*.48,h*.75,33,-.7+elapsed*.03);fx.globalAlpha=1;
     if(currentScreen==='cutscene'&&[1,2].includes(shot)){fx.strokeStyle=shot===2?'#f8b3c0':'#acdff5';fx.lineWidth=2;fx.globalAlpha=.45;for(let i=0;i<3;i++){fx.beginPath();fx.ellipse(w*.6,h*.49,30+((shotElapsed*.25+i*.3)%1)*w*.2,20+((shotElapsed*.25+i*.3)%1)*h*.24,-.3,0,Math.PI*2);fx.stroke();}fx.globalAlpha=1;}
@@ -280,10 +289,11 @@
     }
     if(lesson===0||lesson===1||lesson===5){tc.fillStyle='#ffe6a9';tc.font=`bold ${Math.min(w/21,lesson===5?25:20)}px Trebuchet MS`;tc.textAlign='center';tc.fillText(lesson===5?'✦ Você encontrou a batida!':lesson===1?'←   ↓   ↑   →':'♫ Vamos encontrar a nossa batida?',w/2,h*.42);}
   }
+  let lastFxDraw=-1000;
   function frame(now){requestAnimationFrame(frame);const dt=Math.min(.05,(now-last)/1000);last=now;
-    if(currentScreen==='game'||document.body.classList.contains('warning-pending'))return;
+    if(currentScreen==='game'||document.hidden||$('settingsDialog').open||document.body.classList.contains('warning-pending'))return;
     if(!document.hidden&&!(currentScreen==='cutscene'&&cinemaPaused))elapsed+=dt;
-    renderActor(dt);renderFX();renderTutorial(dt);if(currentScreen==='cutscene')renderSpeech();
+    renderActor(dt);if(now-lastFxDraw>=32){renderFX();lastFxDraw=now;}renderTutorial(dt);if(currentScreen==='cutscene')renderSpeech();
     if(currentScreen==='cutscene'&&!cinemaPaused&&!document.hidden&&!$('settingsDialog').open){shotElapsed+=dt;if(shotElapsed>=shots[shot].duration)nextShot();}
   }
   document.addEventListener('pointerdown',event=>{
@@ -292,7 +302,7 @@
   });
   // Read-only QA state: no autoplay or score mutation.
   window.RR_FRONT=Object.freeze({snapshot:()=>({screen:currentScreen,cinema:cinema.snapshot(),shotCount:shots.length,warning:$('safetyDialog').open,settings:$('settingsDialog').open,shot,shotElapsed,cinemaPaused,lesson,lessonElapsed,tutorialHits,tutorialScore,tutorialNote:tutorialNote?{...tutorialNote}:null,actorTime,actorReady:actorImage.complete&&actorImage.naturalWidth>0,settingsValue:RR_SETTINGS.get(),audio:RR_AUDIO.snapshot()})});
-  window.addEventListener('rr-settings',()=>{$('gameCaption').hidden=currentScreen!=='game'||!RR_SETTINGS.get().captions;});
+  window.addEventListener('rr-settings',()=>{document.body.classList.toggle('interface-enlarged',RR_SETTINGS.get().scaleEnabled&&RR_SETTINGS.get().uiScale>1.1);$('gameCaption').hidden=currentScreen!=='game'||!RR_SETTINGS.get().captions;});
   screen('menu');RR_AUDIO.silence();syncSettings();RR_SETTINGS.apply();
   $('safetyDialog').showModal();requestAnimationFrame(frame);
 })();

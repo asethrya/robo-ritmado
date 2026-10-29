@@ -2,7 +2,9 @@
   'use strict';
   const $ = id => document.getElementById(id);
   const LEVELS = window.RR_LEVELS;
-  const preferences = () => window.RR_SETTINGS.get();
+  let currentPreferences=window.RR_SETTINGS.get();
+  const preferences=()=>currentPreferences;
+  window.addEventListener('rr-settings',()=>{currentPreferences=window.RR_SETTINGS.get();frameDirty=true;dancerDirty=true;});
   let runRate = RR_SETTINGS.rate(), runArrowSpeed = preferences().arrowSpeed;
   let captionUntil = 0;
   function palette() {
@@ -42,10 +44,11 @@
   const imageAsset = url => RR_SPRITES.load(url);
   const assets = LEVELS.map(l => ({ sprite: imageAsset(l.sprite), background: imageAsset(l.background) }));
   let sprite = assets[0].sprite.image;
+  let frameDirty=true,dancerDirty=true,stageHeight=1,stageDpr=1,lastPortraitMood=-1,lastPortraitSprite=null;
   let danceModel = null, stageModel = null, moodValue = 2, recentResults = [], danceClock=0;
   const stageCanvas=$('pixelStage'), stageCtx=stageCanvas.getContext('2d');
   const portrait=$('pixelPortrait'), portraitCtx=portrait.getContext('2d');
-  function resetPerformance(){danceClock=0;moodValue=2;recentResults=[];danceModel=null;stageModel=null;}
+  function resetPerformance(){lastPortraitMood=-1;dancerDirty=true;frameDirty=true;danceClock=0;moodValue=2;recentResults=[];danceModel=null;stageModel=null;}
   let dancerWidth = 600, dancerHeight = 500, spriteReady = false;
   let danceTime = 0, danceFrame = 0, danceLevel = 0, reaction = 0, reactionKind = 'perfect', reactionLane = 0;
   const danceSparks = [];
@@ -88,6 +91,7 @@
     document.body.dataset.theme = level.id;
     document.documentElement.style.setProperty('--pink', level.accent);
     document.querySelector('.world').style.backgroundImage = `url('${level.background}')`;
+    $('trackBackdrop').style.backgroundImage=`url('${level.background}')`;
     $('chapterLabel').textContent = `FASE 0${levelIndex + 1} · ${levelIndex ? 'O SHOW CONTINUA' : 'PRIMEIRA PARADA'}`;
     $('levelTitle').textContent = level.title; $('levelEm').textContent = level.emphasis;
     $('levelSubtitle').textContent = level.subtitle;
@@ -108,6 +112,25 @@
     document.querySelector('.stage').setAttribute('aria-label', `Jogo de ritmo em ${level.name}`);
     updateWorldButtons(); updateScore();
   }
+  const conversation={
+    celebrate:['Uau, que sequência! Você está brilhando!','Olha esse ritmo! Você está mandando muito bem!','Seu esforço está virando música. Que orgulho!','Que show! Adoro tocar com você!','Essa batida é sua! Continue confiando em você!'],
+    improve:['Isso! Estamos encontrando o ritmo juntos!','Viu só? Cada tentativa faz você melhorar!','Boa! Um acerto de cada vez. Você consegue!','Seu ritmo está crescendo. Vamos continuar!'],
+    encourage:['Eu confio em você! A próxima é nossa!','Tudo bem errar. Vamos tentar juntos de novo?','Respira. Olhe o alvo. Eu estou aqui com você!','Você pode aprender! Cada tentativa conta.','Não desista! Eu acredito no seu ritmo!'],
+    waiting:['Siga no seu tempo. Vamos juntos!','Ouça a batida e olhe o encontro das setas.','Minha guitarra e eu estamos com você!']
+  };
+  const welcomes={doces:'Um passinho de açúcar de cada vez. Vem comigo!',brinquedos:'Vamos brincar com o ritmo? Você faz parte do show!',gelo:'Pés leves na neve. Vamos aprender essa valsa?',ceu:'Nossa música vai até as nuvens. Vamos juntos!'};
+  const phraseCounts={};let lastBalloon=0,lastBalloonTone='welcome';
+  function speak(text,tone='welcome'){
+    const bubble=$('pixelSpeech');$('pixelSpeechText').textContent=text;bubble.dataset.tone=tone;
+    bubble.classList.remove('changed');if(!RR_SETTINGS.gentle())requestAnimationFrame(()=>bubble.classList.add('changed'));
+    lastBalloon=performance.now();lastBalloonTone=tone;
+  }
+  function nextConversation(tone){const bank=conversation[tone],i=phraseCounts[tone]||0;phraseCounts[tone]=i+1;speak(bank[i%bank.length],tone);}
+  function talkForResult(kind){
+    const recent=recentResults.length?recentResults.reduce((a,b)=>a+b,0)/recentResults.length:0;
+    const tone=kind==='miss'||recent<.45?'encourage':combo>=5&&recent>=.75?'celebrate':'improve';
+    if(performance.now()-lastBalloon>4200||(tone!==lastBalloonTone&&performance.now()-lastBalloon>2100))nextConversation(tone);
+  }
   async function showLevel(index, carry = 0) {
     const token = ++generation;
     state = 'loading'; spriteReady = false; dancer.style.visibility = 'hidden'; updateWorldButtons(); clearInterval(scheduler); stopVoices();
@@ -121,7 +144,7 @@
     $('intro').hidden = false; $('results').hidden = true; $('pauseOverlay').hidden = true;
     $('countdown').innerHTML = ''; $('judgment').classList.remove('show');
     $('pause').disabled = true; $('offset').disabled = false; $('spriteStatus').hidden = true;
-    state = 'ready'; updateLevelUI();
+    state = 'ready'; updateLevelUI();speak(welcomes[level.id]);
     // Wait for visible layout before committing the decoded costume to the canvas.
     await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
     if (token !== generation) return;
@@ -171,22 +194,25 @@
   function chartTime() { return clock() - offset / 1000; }
   function resize() {
     const box = canvas.getBoundingClientRect();
-    const dpr = Math.min(devicePixelRatio || 1, 2);
-    width = box.width; height = box.height;
+    const dpr = Math.min(devicePixelRatio || 1, 1.5);
+    width = box.width; height = box.height;frameDirty=true;
     canvas.width = Math.round(width * dpr); canvas.height = Math.round(height * dpr);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
   new ResizeObserver(resize).observe(canvas);
   function resizeDancer() {
-    const box = dancer.getBoundingClientRect(), dpr = Math.min(devicePixelRatio || 1, 2);
+    const box = dancer.getBoundingClientRect(), dpr = Math.min(devicePixelRatio || 1, 1.5);
     dancerWidth = Math.max(1, box.width); dancerHeight = Math.max(1, box.height);
     dancer.width = Math.round(dancerWidth * dpr); dancer.height = Math.round(dancerHeight * dpr);
     danceCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const sb=stageCanvas.getBoundingClientRect();stageHeight=sb.height;stageDpr=dpr;
+    stageCanvas.width=Math.max(1,Math.round(sb.width*dpr));stageCanvas.height=Math.max(1,Math.round(sb.height*dpr));stageCtx.setTransform(dpr,0,0,dpr,0,0);dancerDirty=true;frameDirty=true;
   }
   new ResizeObserver(resizeDancer).observe(dancer);
   function drawDancer(dt,isSongRunning) {
-    danceCtx.clearRect(0,0,dancerWidth,dancerHeight);
     if(!spriteReady)return;
+    if(state==='paused'&&!dancerDirty)return;
+    dancerDirty=false;danceCtx.clearRect(0,0,dancerWidth,dancerHeight);
     const still=reducedMotion||preferences().sensitivity;
     const paused=state==='paused'||document.body.dataset.screen!=='game'||document.hidden;
     if(!paused){
@@ -206,13 +232,8 @@
     const mood=Math.max(0,Math.min(4,Math.round(moodValue)));
     danceFrame=0;danceLevel=Math.min(3,Math.floor(progress*4));
     danceModel=RR_PERFORMANCE.draw(danceCtx,sprite,level,{width:dancerWidth,height:dancerHeight,beat,progress,amount:still?0:soft?.35:1,mood,soft});
-    const stageBox=stageCanvas.getBoundingClientRect(),dpr=Math.min(devicePixelRatio||1,2);
-    if(stageCanvas.width!==Math.round(stageBox.width*dpr)||stageCanvas.height!==Math.round(stageBox.height*dpr)){
-      stageCanvas.width=Math.round(stageBox.width*dpr);stageCanvas.height=Math.round(stageBox.height*dpr);
-    }
-    stageCtx.setTransform(dpr,0,0,dpr,0,0);
     const power=Math.min(1,Math.max(0,score/GOAL)*.55+quality*.25+Math.min(1,combo/12)*.2);
-    stageModel=RR_PERFORMANCE.platform(stageCtx,{width:dancerWidth,height:stageBox.height,floor:dancerHeight*.965,x:danceModel.x,id:level.id,colors:COLORS,accent:level.accent,power,beat,soft,still});
+    stageModel=RR_PERFORMANCE.platform(stageCtx,{width:dancerWidth,height:stageHeight,floor:dancerHeight*.965,x:danceModel.x,id:level.id,colors:COLORS,accent:level.accent,power,beat,soft,still});
     if($('dancePhrase').textContent!==danceModel.phrase)$('dancePhrase').textContent=danceModel.phrase;
     const emotion=RR_PERFORMANCE.moods[mood];
     if($('pixelMood').textContent!==emotion.name){
@@ -221,8 +242,10 @@
     }
     // The portrait enlarges the actual visor so the expression is also readable
     // on a small screen. It uses the exact same texture as Pixel's body.
-    const tex=RR_PERFORMANCE.texture(sprite,FRAMES[0],level.face,mood,level.id,level.faceClip),[fx,fy,fw,fh]=level.face;
-    portraitCtx.clearRect(0,0,96,84);portraitCtx.drawImage(tex,fx-fw*.8,fy-fh*.9,fw*1.6,fh*1.8,0,0,96,84);
+    const tex=RR_PERFORMANCE.texture(sprite,FRAMES[0],level.face,mood,level.id,level.faceClip,level.mouth,level.tears),[fx,fy,fw,fh]=level.face;
+    if(lastPortraitMood!==mood||lastPortraitSprite!==sprite){
+      portraitCtx.clearRect(0,0,96,84);portraitCtx.drawImage(tex,fx-fw*.8,fy-fh*.8,fw*1.6,fh*2.2,0,0,96,84);lastPortraitMood=mood;lastPortraitSprite=sprite;
+    }
     if(!paused)for(const p of danceSparks){p.age+=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;}
     if(!soft&&!still)for(const p of danceSparks){
       danceCtx.globalAlpha=Math.max(0,1-p.age/p.life)*.7;danceCtx.fillStyle=p.color;
@@ -364,7 +387,7 @@
       state = 'countdown'; epoch = audio.currentTime + .15 + 4 * BEAT;
       updateWorldButtons();
       step = -8; lastCount = null;
-      updateScore(); $('pixelMessage').textContent = 'Prepare as setas. Vamos nessa!';
+      updateScore();speak(welcomes[level.id]);$('pixelMessage').textContent = 'Prepare as setas. Vamos nessa!';
       $('announcer').textContent = 'Prepare-se. A música vai começar.';
       scheduleMusic(); scheduler = setInterval(scheduleMusic, 25);
     } catch (error) {
@@ -377,7 +400,7 @@
   }
   async function pause() {
     if (!['playing', 'countdown'].includes(state)) return;
-    previousState = state; state = 'paused';
+    previousState = state; state = 'paused';frameDirty=true;dancerDirty=true;
     clearInterval(scheduler); pressed.fill(false);
     $('pauseOverlay').hidden = false; $('pause').textContent = '▶';
     $('pause').setAttribute('aria-label', 'Continuar música');
@@ -423,7 +446,7 @@
         size: 14 + Math.random() * 13, symbol: i % 3 ? level.ornament : '♪' });
     }
     if (danceSparks.length > 90) danceSparks.splice(0, danceSparks.length - 90);
-    updateScore(); spawn(note.lane, kind);
+    updateScore();talkForResult(kind);spawn(note.lane, kind);
     RR_AUDIO.hit(note.lane, kind);
     const description = { perfect: 'Acerto no ritmo!', good: 'Acerto parcial. Muito bem!', near: 'Quase acerto!', miss: 'Erro. A próxima é nossa!' };
     caption(`${description[kind]} ${DIRECTIONS[note.lane]}. +${POINTS[kind]} pontos. Total: ${bankedScore + score}.`, 1.25);
@@ -472,6 +495,7 @@
     $('stars').textContent = '✦'.repeat(stars) + '✧'.repeat(3 - stars);
     $('stars').setAttribute('aria-label', `${stars} de 3 estrelas`);
     const charged = score >= GOAL;
+    speak(charged?'Conseguimos! Eu sabia que você podia!':'Seu esforço vale muito. Vamos tentar outra vez?',charged?'celebrate':'encourage');
     const hasNext=levelIndex<LEVELS.length-1;
     if(charged)$('energyHint').textContent=hasNext?'Portal aberto para '+LEVELS[levelIndex+1].name+'!':'Quatro mundos no nosso ritmo!';
     if(charged&&hasNext){unlockedThrough=Math.max(unlockedThrough,levelIndex+1);toysUnlocked=true;save('rr-worlds-v07',unlockedThrough);save('robo-ritmado-toys-unlocked','true');}
@@ -539,7 +563,8 @@
   function draw(timestamp) {
     requestAnimationFrame(draw);
     const dt = Math.min(.05, (timestamp - lastFrame) / 1000); lastFrame = timestamp;
-    if (document.body.dataset.screen !== 'game') return;
+    if (document.body.dataset.screen !== 'game'||document.hidden) return;
+    if(state==='paused'&&!frameDirty)return;frameDirty=false;
     if (state !== 'paused') visualTime += dt;
     const active = state === 'playing' || state === 'countdown';
     let t = active || state === 'paused' || state === 'results' ? chartTime() : -4 * BEAT;
@@ -571,6 +596,7 @@
       if ($('captionApproach').textContent !== cue) $('captionApproach').textContent = cue;
       if (timestamp > captionUntil) $('captionResult').textContent = '';
     }
+    if(active&&state==='playing'&&performance.now()-lastBalloon>8500)nextConversation(recentResults.length&&recentResults.slice(-3).every(n=>n===0)?'encourage':'waiting');
     drawDancer(dt, active);
     ctx.clearRect(0, 0, width, height);
     const target = targetY(), laneWidth = width * .2266667, size = Math.min(78 * (preferences().scaleEnabled ? preferences().arrowScale : 1), laneWidth * .88);
@@ -753,6 +779,7 @@
     }
   }), writable: false });
   function syncPreferences() {
+    frameDirty=true;dancerDirty=true;
     COLORS = palette(); setSoft(); $('volume').value = preferences().musicVolume;
     if (audio && master) master.gain.setTargetAtTime(preferences().musicVolume / 100 * .72, audio.currentTime, .02);
     if (preferences().sensitivity) { particles = []; rings = []; danceSparks.length = 0; flashes.fill(0); }

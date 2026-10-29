@@ -7,20 +7,22 @@
   <meta name="description" content="Robô Ritmado: ajude Pixel a viajar por quatro mundos temáticos em uma aventura musical.">
   <title>Robô Ritmado • A aventura de Pixel</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect rx='16' width='64' height='64' fill='%23170e30'/%3E%3Ctext x='11' y='48' font-size='48' fill='%23fa75d8'%3E✦%3C/text%3E%3C/svg%3E">
-  <link rel="stylesheet" href="stage.css?v=0.8">
-  <link rel="stylesheet" href="worlds.css?v=0.8">
-  <link rel="stylesheet" href="front.css?v=0.8">
-  <link rel="stylesheet" href="playful.css?v=0.8">
-  <script src="settings.js?v=0.8" defer></script>
-  <script src="interface-audio.js?v=0.8" defer></script>
-  <script src="sprite-assets.js?v=0.8" defer></script>
-  <link rel="stylesheet" href="wonder.css?v=0.8">
-  <link rel="stylesheet" href="performance.css?v=0.8">
-  <script src="performance.js?v=0.8" defer></script>
-  <script src="levels.js?v=0.8" defer></script>
-  <script src="game.js?v=0.8" defer></script>
-  <script src="cinematic.js?v=0.8" defer></script>
-  <script src="front.js?v=0.8" defer></script>
+  <link rel="stylesheet" href="stage.css?v=0.9">
+  <link rel="stylesheet" href="worlds.css?v=0.9">
+  <link rel="stylesheet" href="front.css?v=0.9">
+  <link rel="stylesheet" href="playful.css?v=0.9">
+  <script src="settings.js?v=0.9" defer></script>
+  <script src="interface-audio.js?v=0.9" defer></script>
+  <script src="sprite-assets.js?v=0.9" defer></script>
+  <link rel="stylesheet" href="wonder.css?v=0.9">
+  <link rel="stylesheet" href="performance.css?v=0.9">
+  <link rel="stylesheet" href="encore.css?v=0.9">
+  <script src="gpu-dancer.js?v=0.9" defer></script>
+  <script src="performance.js?v=0.9" defer></script>
+  <script src="levels.js?v=0.9" defer></script>
+  <script src="game.js?v=0.9" defer></script>
+  <script src="cinematic.js?v=0.9" defer></script>
+  <script src="front.js?v=0.9" defer></script>
 </head>
 <body data-theme="doces" data-screen="menu" class="warning-pending">
   <div class="world" aria-hidden="true"></div>
@@ -46,6 +48,7 @@
 
         <div class="play-space">
           <div class="track-shell" id="trackShell">
+            <div id="trackBackdrop" class="track-backdrop" aria-hidden="true"></div>
             <div class="track-crown" aria-hidden="true"><span>♡</span><b>♪</b><span>♡</span></div><div class="track-meta"><span><i></i> <span id="trackName">PISTA DE CRISTAL</span></span><span id="tempoLabel">90 BPM · FÁCIL</span></div>
             <canvas id="track" aria-label="Quatro pistas com setas que descem até a linha de acerto"></canvas>
             <div class="track-instruction">Aperte quando as setas se encontrarem</div>
@@ -77,7 +80,7 @@
             </div>
           </div>
 
-          <div class="pixel-side"><canvas id="pixelStage" class="pixel-stage" aria-hidden="true"></canvas><div class="dance-badge"><canvas id="pixelPortrait" width="96" height="84" aria-hidden="true"></canvas><div><span id="danceStyle">Pop de açúcar</span><b id="dancePhrase">Vamos dançar?</b><small id="pixelMood" class="pixel-mood">Animando</small></div></div>
+          <div class="pixel-side"><div id="pixelSpeech" class="pixel-speech" role="status" aria-live="polite" data-tone="welcome"><span>♪ PIXEL</span><p id="pixelSpeechText">Vamos encontrar a nossa batida?</p></div><canvas id="pixelStage" class="pixel-stage" aria-hidden="true"></canvas><div class="dance-badge"><canvas id="pixelPortrait" width="96" height="84" aria-hidden="true"></canvas><div><span id="danceStyle">Pop de açúcar</span><b id="dancePhrase">Vamos dançar?</b><small id="pixelMood" class="pixel-mood">Animando</small></div></div>
             <div id="pixelArt" class="pixel-art" role="img" aria-label="Pixel de corpo inteiro dançando com a guitarra, no traje do Reino dos Doces"><canvas id="pixelSprite" aria-hidden="true"></canvas></div>
             <span id="pixelMessage" class="sr-only">Vamos encontrar a nossa batida?</span>
             <p id="spriteStatus" class="sprite-status" role="status">Preparando Pixel…</p>
@@ -93,7 +96,7 @@
       </section>
       <div class="touch-controls" aria-label="Setas para jogar com toque"><button data-lane="0" aria-label="Esquerda">←</button><button data-lane="1" aria-label="Baixo">↓</button><button data-lane="2" aria-label="Cima">↑</button><button data-lane="3" aria-label="Direita">→</button></div>
     </main>
-    <footer><span>✦ ROBÔ RITMADO · SIGA O RITMO. EXPLORE O INFINITO.</span><span>VERSÃO 0.8 <b>•</b> QUATRO MUNDOS</span></footer>
+    <footer><span>✦ ROBÔ RITMADO · SIGA O RITMO. EXPLORE O INFINITO.</span><span>VERSÃO 0.9 <b>•</b> QUATRO MUNDOS</span></footer>
   </div>
   <div id="travelOverlay" class="travel-overlay" hidden role="status" aria-live="polite"><div class="travel-rings" aria-hidden="true"><i></i><i></i><i></i><b>✦</b></div><span class="pill">NOVO MUNDO DESBLOQUEADO</span><h2>Próxima parada:<br><em id="travelDestination">Brinquedolândia!</em></h2><p id="travelSummary">Seus pontos viajam com você.</p><span id="travelStatus">Abrindo o portal…</span><button id="retryTravel" class="primary-button" hidden>Tentar abrir o portal novamente</button></div>
   <div id="announcer" class="sr-only" role="status" aria-live="polite"></div>
