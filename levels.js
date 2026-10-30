@@ -1,11 +1,11 @@
 'use strict';
 // Each world owns its score chart, instruments, approved complete costume and dance.
 window.RR_LEVELS=Object.freeze([
- {id:'doces',groundY:512,contactX:179,name:'Reino dos Doces',title:'Reino dos',emphasis:'Doces',subtitle:'Um passinho de açúcar. Uma aventura deliciosa!',bpm:90,beats:64,meter:4,
+ {id:'doces',contacts:[[512,179],[512,222],[512,210],[512,203]],groundY:512,contactX:179,name:'Reino dos Doces',title:'Reino dos',emphasis:'Doces',subtitle:'Um passinho de açúcar. Uma aventura deliciosa!',bpm:90,beats:64,meter:4,
  song:'Doce Travessia',style:'Pop de confeitaria · sinos e marimba',instrument:'candy',mouth:[167,122,13,6,.1,'#f8e8ed','#e986b8'],tears:[[145,112,-1,15],[183,113,-2,14]],face:[166,91,56,34,.25],faceClip:[[141,80],[150,72],[172,73],[187,82],[196,94],[193,104],[181,112],[160,113],[146,104],[138,91]],background:'assets/doces-v08.png',sprite:'assets/pixel-doces-danca-v6.png',designWidth:384,designHeight:512,frames:RR_SPRITES.cells(),
  colors:['#ee80d2','#65d9ff','#c09aff','#ffcf81'],accent:'#f18bcf',ornament:'♡',track:'Ateliê de açúcar',panel:['#53336ba6','#7c426c99'],
  melody:[72,76,79,76,74,79,83,79,69,72,76,79,77,76,72,69],bass:[48,43,45,41],minorChord:2,sequence:[0,1,2,3,2,1,0,2,3,1,2,0,1,3,2,3],skipBeat:b=>(b<16&&b%2!==0)||(b>=16&&b<48&&b%8===7)},
- {id:'brinquedos',groundY:501,contactX:211,name:'Brinquedolândia',title:'Brinquedolândia',emphasis:'',subtitle:'Blocos, estrelas e um desfile pra lá de divertido!',bpm:104,beats:64,meter:4,
+ {id:'brinquedos',contacts:[[501,211],[483,78],[510,236],[500,95]],groundY:501,contactX:211,name:'Brinquedolândia',title:'Brinquedolândia',emphasis:'',subtitle:'Blocos, estrelas e um desfile pra lá de divertido!',bpm:104,beats:64,meter:4,
  song:'Desfile dos Brinquedos',style:'Marcha divertida · caixa de música e madeira',instrument:'toy',mouth:[194,111,12,6,.35,'#f3edf4','#c982cf'],tears:[[186,100,-1,13],[215,102,-2,12]],face:[200,78,46,33,.42],faceClip:[[180,64],[197,57],[215,66],[225,83],[221,96],[214,103],[196,99],[181,85]],background:'assets/brinquedos-v08.png',sprite:'assets/pixel-brinquedos-danca-v4.png',
  frames:[[4,12,390,505],[406,28,377,489],[779,0,386,517],[1170,12,366,505],[2,609,431,394],[424,532,395,478],[816,520,357,494],[1178,535,358,478]],
  colors:['#70b9ff','#ffce65','#b098ff','#fb8aab'],accent:'#85c7ff',ornament:'★',track:'Desfile das estrelas',panel:['#284c86a6','#424d8999'],
@@ -25,5 +25,13 @@ window.RR_LEVELS=Object.freeze([
  {id:'pantano',groundY:1389,contactX:611,name:'Pântano Mágico',title:'Pântano',emphasis:'Mágico',subtitle:'Raízes, vaga-lumes e um balanço cheio de vida!',bpm:100,beats:96,meter:4,
  song:'Balanço das Raízes',style:'Groove da floresta · marimba de madeira e gotas de água',instrument:'swamp',background:'assets/pantano-v10.png',sprite:'assets/pixel-pantano-v10.png',designWidth:1122,designHeight:1402,frames:[[0,0,1122,1402]],mouth:[520,291,24,11,.2,'#f5efe6','#8c9974'],tears:[[492,273,-1,25],[574,284,-3,23]],face:[530,240,108,80,.3],
  colors:['#b5e899','#80e0d0','#d29aef','#ffe1a0'],accent:'#b8e4ae',ornament:'❧',track:'Clareira dos vaga-lumes',panel:['#335d61b8','#675178ad'],
- melody:[67,70,74,77,74,70,69,72,76,79,76,72,65,69,72,76,74,72,69,65,62,65,69,72],bass:[43,45,41,38],minorChord:0,sequence:[2,1,0,3,1,2,3,0,2,0,1,3,0,3,2,1],skipBeat:b=>b%8===7}
-].map((level,index)=>Object.freeze({...level,goal:RR_CAMPAIGN[index].goal})));
+ melody:[67,70,74,77,74,70,69,72,76,79,76,72,65,69,72,76,74,72,69,65,62,65,69,72],bass:[43,45,41,38],minorChord:0,sequence:[2,1,0,3,1,2,3,0,2,0,1,3,0,3,2,1],skipBeat:b=>b%8===7},
+ {id:'nebulosa',name:'Floresta Nebulosa',title:'Floresta',emphasis:'Nebulosa',subtitle:'Vaga-lumes e cogumelos guardam a próxima melodia.',bpm:110,beats:104,meter:4,
+ song:'Vaga-lumes em Órbita',style:'Fantasia violeta · sinos de névoa e acordes aéreos',instrument:'mist',background:'assets/nebulosa-v11.png',sprite:'assets/pixel-nebulosa-v11.png',designWidth:1122,designHeight:1402,frames:[[0,0,1122,1402]],groundY:1388,contactX:654,mouth:[595,290,24,11,.2,'#f7eef5','#b98dca'],tears:[[554,264,-1,23],[646,284,-2,22]],face:[600,244,110,80,.25],
+ colors:['#eda7f5','#85dff3','#c1a1fb','#ffdaae'],accent:'#d7a7f3',ornament:'✧',track:'Clareira das estrelas',panel:['#4e387bba','#56375aad'],
+ melody:[69,72,76,79,83,79,76,72,67,71,74,78,81,78,74,71,65,69,72,76,79,76,72,69],bass:[45,43,41,40],minorChord:0,sequence:[0,2,1,3,2,0,3,1,2,3,1,0,3,0,2,1],skipBeat:b=>b%8===7},
+ {id:'atlanta',name:'Atlanta',title:'Atlanta',emphasis:'Submersa',subtitle:'Nossa guitarra vai encontrar o compasso das marés!',bpm:106,beats:112,meter:4,
+ song:'Maré de Cristais',style:'Pop oceânico · harpa de conchas e gotas de cristal',instrument:'ocean',background:'assets/atlanta-v11.png',sprite:'assets/pixel-atlanta-v11.png',designWidth:1122,designHeight:1402,frames:[[0,0,1122,1402]],groundY:1402,contactX:338,mouth:[595,292,24,11,.2,'#f7eef4','#b986bd'],tears:[[550,278,-1,23],[651,289,-2,23]],face:[600,245,110,80,.25],
+ colors:['#8ae5fa','#99c6ff','#bfacf8','#b4f5dd'],accent:'#8de2f1',ornament:'◈',track:'Salão das marés',panel:['#264e7bba','#3d538bad'],
+ melody:[74,78,81,85,88,85,81,78,71,74,78,83,86,83,78,74,69,73,76,81,85,81,76,73],bass:[50,47,45,43],minorChord:2,sequence:[2,1,3,0,2,3,1,0,3,2,0,1,2,0,1,3],skipBeat:b=>b%8===7}
+].map((level,index)=>Object.freeze({...level,goal:RR_CAMPAIGN[index].goal,album:`assets/album-${level.id}.svg`})));

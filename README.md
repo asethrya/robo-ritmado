@@ -1,42 +1,49 @@
-# Robô Ritmado — versão 0.10
+# Robô Ritmado — versão 0.11
 
-A aventura musical de Pixel agora tem **seis fases jogáveis**, em uma campanha planejada para dez mundos. Extraia a pasta completa e abra **Abrir-jogo.cmd** ou **index.html** no Chrome/Edge; não é preciso instalar nada nem usar servidor.
+Uma aventura musical infantil com Pixel, um robô que transforma música em conexão. Esta versão tem **oito fases jogáveis**, em uma campanha planejada para dez mundos.
 
-## Novidades desta entrega
+Extraia a pasta completa e abra **Abrir-jogo.cmd** ou **index.html** no Chrome/Edge. Não é preciso instalar dependências nem usar servidor. Mantenha a pasta `assets` junto dos arquivos do jogo.
 
-- **Deserto Escaldante** e **Pântano Mágico**, com cenários lapidados a partir das referências fornecidas, outfits próprios, palcos temáticos, coreografias contínuas e trilhas diferentes: Sol em Movimento (108 BPM) e Balanço das Raízes (100 BPM).
-- **Opções, Acessibilidade e Tutorial mais leves**: sem desfoque de fundo em tempo real nos diálogos, animações de fundo suspensas durante ajustes, gravação de preferências agrupada e fundo da pista de treino reaproveitado. Os mundos seguintes carregam suas imagens quando necessários.
-- **Pontuação crescente**: 2.600, 3.000, 3.400, 3.800, 4.200 e 4.600 nas seis fases atuais. As metas das fases 7–10 são 5.000, 5.400, 5.800 e 6.200; elas aparecem como Em breve.
-- **Nova tentativa com Pixel**: se faltar pontuação, um quadro com Pixel incentiva o player e oferece reiniciar a mesma fase. O portal só abre ao completar a música e atingir sua meta.
-- **Pés no palco e dança mais expressiva**: o palco usa a mesma origem do personagem, com apoio corrigido das botas. Balanços e passos são contínuos, ritmados e ganham amplitude conforme o desempenho. A versão aberta diretamente pela pasta também usa uma malha conectada; não se limita a inclinar a imagem.
-- **Novo título do menu**: letras inclinadas com contornos, textura, relevo visual e brilho, reposicionadas acima dos botões, na paleta de Pixel. OrbitHop, o palco e os botões foram mantidos.
+## Novidades
 
-## Os mundos disponíveis
+- **OrbitHop recolorido** a partir do background aprovado, com a mesma composição e tons mais próximos do outfit padrão e do palco: violeta profundo, rosa, ciano e branco. Uma cópia independente acompanha a entrega em `outputs/OrbitHop-background-0.11.png`.
+- **Nome maior no menu**, mantendo a fonte decorativa, textura e paleta aprovadas. Placas redesenhadas, botões com tipografia derivada e favicon de estrela cibernética. Corrigido o corte das últimas letras O.
+- **Viagens voluntárias por portal** após concluir cada fase com a meta: Pixel canaliza a guitarra, abre o mesmo portal da introdução, entra com coragem e sai no cenário seguinte com o novo outfit. Há controles de pausa e de chegar direto ao destino. Sensibilidade Visual usa transições suaves, sem deslocamento ou rotação do personagem.
+- **Aviso temático antes de cada fase**, com número, nome, descrição, duração, meta e ornamentos próprios. A música começa somente ao escolher Entrar no ritmo. Todos os avisos de partida usam fundo preto translúcido para destacar a mensagem.
+- **Interface da partida reorganizada**: retirados o nome do jogo e o bloco descritivo sobre a pista; Pixel e palco maiores; placar reposicionado; música compacta com capa simbólica exclusiva; poder **Ressonância de Pixel** na parte inferior, ao lado da música.
+- **Final musical sincronizado**: as notas continuam até o encerramento, com a janela da última seta terminando no fim da música. As metas anteriores permanecem iguais.
+- **Dança sem deformação elástica**: os desenhos permanecem íntegros e apoiados no palco. As poses antigas de Doces e Brinquedos voltaram em ordem fixa, com transição gradual; os demais outfits têm balanços e deslocamentos contínuos próprios, sincronizados ao ritmo. A animação usa ilustrações 2D, sem física de membros ou ragdoll.
+- **Boas-vindas de acessibilidade** com Pixel padrão em tamanho grande, orientação sobre cores, leitura, movimento, ritmo, legendas e tempo, mantendo o cuidado explícito com luzes, efeitos e fotossensibilidade. Acesso direto aos ajustes e opção de seguir ao menu. O recurso continua sempre no menu e em Opções.
+- **Floresta Nebulosa e Atlanta**, com cenários lapidados, outfits das referências oficiais, palcos temáticos e músicas próprias.
+
+## Os mundos
 
 | Fase | Mundo | Música | Meta | Máximo |
 | --- | --- | --- | ---: | ---: |
-| 01 | Reino dos Doces | Doce Travessia · 90 BPM | 2.600 | 4.600 |
-| 02 | Brinquedolândia | Desfile dos Brinquedos · 104 BPM | 3.000 | 5.300 |
-| 03 | Castelo Invernal | Valsa dos Cristais · 84 BPM | 3.400 | 5.900 |
-| 04 | Paraíso | Órbita das Nuvens · 96 BPM | 3.800 | 6.300 |
-| 05 | Deserto Escaldante | Sol em Movimento · 108 BPM | 4.200 | 7.000 |
-| 06 | Pântano Mágico | Balanço das Raízes · 100 BPM | 4.600 | 7.700 |
+| 01 | Reino dos Doces | Doce Travessia · 90 BPM | 2.600 | 5.000 |
+| 02 | Brinquedolândia | Desfile dos Brinquedos · 104 BPM | 3.000 | 5.700 |
+| 03 | Castelo Invernal | Valsa dos Cristais · 84 BPM | 3.400 | 6.300 |
+| 04 | Paraíso | Órbita das Nuvens · 96 BPM | 3.800 | 6.700 |
+| 05 | Deserto Escaldante | Sol em Movimento · 108 BPM | 4.200 | 7.400 |
+| 06 | Pântano Mágico | Balanço das Raízes · 100 BPM | 4.600 | 8.100 |
+| 07 | Floresta Nebulosa | Vaga-lumes em Órbita · 110 BPM | 5.000 | 8.800 |
+| 08 | Atlanta | Maré de Cristais · 106 BPM | 5.400 | 9.500 |
 
-O mapa musical do Paraíso foi ampliado para sustentar sua nova meta crescente. As quatro fases futuras são Floresta Nebulosa, Atlanta, Masmorra Ardente e Colina Escarlate.
+**Masmorra Ardente** e **Colina Escarlate** continuam em preparação, com metas planejadas de 5.800 e 6.200. Após Atlanta, o próximo sinal é apresentado em uma cena; os dois mundos finais permanecem Em breve.
 
-## Jogar
+## Como jogar
 
-Use **← ↓ ↑ →** ou os controles de toque quando a seta alcançar o alvo. No ritmo vale 100 pontos; Muito bem, 60; Quase, 20. **Esc** pausa. **Menu** permite voltar ao início e **Continuar partida** retoma a sessão. A pontuação exigida é por fase, separada do total acumulado.
+Use **← ↓ ↑ →** ou os controles de toque quando a seta alcançar o alvo. **No ritmo!** vale 100 pontos, **Muito bem!**, 60, **Quase!**, 20, e erro, zero. **Esc** pausa; outro Esc ou Continuar retoma. As janelas de pré-fase e resultado permanecem abertas até escolher uma ação.
 
-O menu mantém a música Órbita de Casa, a abertura animada, Tutorial, Opções, Acessibilidade e Sobre Nós. O aviso de fotossensibilidade vem antes das animações e da música. Permanecem os ajustes de daltonismo, escalas, alto contraste, dança mais lenta, legendas, velocidade do jogo e sensibilidade visual. Os olhos e outfits das quatro fases anteriores foram preservados.
+Conclua a música e atinja a meta individual para viajar. Os pontos acumulados seguem pelo portal. Se faltar pontuação, Pixel oferece incentivo e uma nova tentativa na mesma fase. No aviso pré-fase, **Revisitar mundos liberados** permite ensaiar uma fase desbloqueada com novo placar. O progresso de desbloqueio é salvo no navegador quando disponível.
 
-A animação é uma ilustração 2D conectada, com movimentos limitados para preservar o desenho. Usa uma passagem WebGL quando permitida e uma malha Canvas com 16 faixas na abertura local ou sem WebGL. Não há partes soltas ou física de boneco.
+O menu mantém Tutorial guiado, Opções, Acessibilidade e Sobre Nós. Ajuste separadamente a música do menu, as músicas das fases, os sons dos efeitos e a velocidade visual das setas. Acessibilidade reúne daltonismo, alto contraste, escalas, legendas descritivas, dança mais lenta, velocidade do jogo e Sensibilidade Visual. Os ajustes de velocidade musical entram ao iniciar ou reiniciar uma fase.
 
 ## Documentação
 
-- **PONTUACOES-010.md**: relatório das metas, faixas sem êxito, máximos e desbloqueios das dez fases.
-- **VALIDACAO-010.md**: verificações de jogabilidade, desempenho e acessibilidade desta entrega.
-- **assets/GERACAO-10.md**: referências, prompts exatos e arquivos da arte nova.
-- **campaign.js**: configuração única das dez metas e situação das fases.
+- **PONTUACOES-011.md**: metas, máximos, desbloqueios e fases futuras.
+- **VALIDACAO-011.md**: testes de campanha, portal, tutorial, acessibilidade, telas e desempenho.
+- **assets/GERACAO-11.md**: referências e prompts exatos da arte nova.
+- **campaign.js**: configuração única das metas e disponibilidade dos dez mundos.
 
-Os relatórios das versões anteriores continuam na pasta para consulta histórica.
+Os relatórios e assets anteriores continuam preservados para consulta histórica. Esta entrega substitui o uso da malha elástica no personagem; `gpu-dancer.js` permanece como arquivo histórico e não é carregado pelo jogo.

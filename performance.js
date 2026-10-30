@@ -8,6 +8,8 @@
     doces:{style:'Pop de açúcar',name:'Doce balanço',phrases:['Balanço de açúcar','Passo de nuvem','Onda de confeitos','Final coração']},
     brinquedos:{style:'Funk dos brinquedos',name:'Desfile das estrelas',phrases:['Marca o passinho','Deslize de brinquedo','Balanço das estrelas','Desfile triunfal']},
     gelo:{style:'Ballet · valsa em 3 tempos',name:'Valsa dos cristais',phrases:['Plié suave','Passo de valsa','Arco de cristal','Reverência de neve']},
+    nebulosa:{style:'Dança dos vaga-lumes',name:'Órbita violeta',phrases:['Passo da névoa','Balanço de luz','Roda das estrelas','Abraço de vaga-lumes']},
+    atlanta:{style:'Dança das marés',name:'Onda de cristal',phrases:['Passo da maré','Balanço de coral','Órbita das conchas','Onda de alegria']},
     deserto:{style:'Dança das dunas',name:'Passos do sol',phrases:['Balanço das dunas','Passo solar','Onda de areia','Grande final do sol']},
     pantano:{style:'Groove da floresta',name:'Balanço das raízes',phrases:['Passo de raiz','Onda de folhas','Groove dos vaga-lumes','Abraço da floresta']},
     ceu:{style:'Dança contemporânea',name:'Órbita das nuvens',phrases:['Respiração das nuvens','Onda celestial','Passo em órbita','Abraço das estrelas']}
@@ -33,6 +35,10 @@
       lift=(1-Math.cos(t/3))*.006*a;
       lean=Math.sin(t/6)*.025*a;
       bend=Math.sin(t/3)*.012*a;step=Math.sin(t/3)*.006*a;
+    }else if(id==='nebulosa'){
+      x=(Math.sin(t/8)*.026+Math.sin(t/4)*.004)*a;lean=Math.sin(t/4)*.018*a;
+    }else if(id==='atlanta'){
+      x=Math.sin(t/6)*.03*a;lean=Math.sin(t/6-.3)*.017*a;
     }else if(id==='deserto'){
       x=(Math.sin(t/4)*.04+Math.sin(t/2)*.009)*a;lean=Math.sin(t/2)*.035*a;bend=Math.sin(t/2-.6)*.023*a;step=Math.sin(t/2)*.022*a;
     }else if(id==='pantano'){
@@ -82,11 +88,15 @@
     const c=document.createElement('canvas');c.width=rect[2];c.height=rect[3];const cx=c.getContext('2d');
     cx.drawImage(image,...rect,0,0,c.width,c.height);if(box)face(cx,box,mood,id,clip,mouth,tears);cache.set(key,c);return c;
   }
-  function body(ctx,texture,x,floor,scale,p){
-    const gpu=window.RR_MESH?.draw(ctx,texture,x,floor,scale,p);
-    const calls=gpu?1:RR_MESH.canvasMesh(ctx,texture,x,floor,scale,p);
-    const contact=RR_MESH.project((p.contactX||texture.width*.5)/texture.width,(p.groundY||texture.height)/texture.height,texture.width,texture.height,p,x,floor,scale,[0,0]);
-    return {x,floor,height:texture.height*scale,lean:p.lean,backend:gpu?'webgl':'canvas-mesh',bodyDrawCalls:calls,groundContact:{x:contact[0],y:contact[1]}};
+  // Rigid whole-body illustration: uniform scale and sole-pivot rotation only.
+  // No vertex warping, bending, stretching or separate limb physics.
+  function projectRigid(px,py,groundY,contactX,x,floor,scale,angle){
+    const dx=(px-contactX)*scale,dy=(py-groundY)*scale,c=Math.cos(angle),sn=Math.sin(angle);
+    return{x:x+dx*c-dy*sn,y:floor+dx*sn+dy*c};
+  }
+  function body(ctx,tex,x,floor,scale,p,alpha=1){
+    ctx.save();ctx.globalAlpha=alpha;ctx.translate(x,floor);ctx.rotate(p.lean);ctx.drawImage(tex,-p.contactX*scale,-p.groundY*scale,tex.width*scale,tex.height*scale);ctx.restore();
+    return{x,floor,height:tex.height*scale,lean:p.lean,backend:'rigid-illustration',bodyDrawCalls:1,groundContact:{x,y:floor}};
   }
   const stages=new Map();
   function staticPlatform(ctx,{width,height,floor,x,id,colors,accent,power,beat,soft,still}){
@@ -110,6 +120,12 @@
         ctx.fillStyle=colors[i%4];ctx.fillRect(px+2,cy+5,ww-4,depth+ry);ctx.strokeStyle='#ffffff99';ctx.strokeRect(px+2,cy+5,ww-4,depth+ry);
       }else if(id==='gelo'){
         ctx.fillStyle=i%2?'#94dfffc0':'#cbbcf9b0';ctx.beginPath();ctx.moveTo(px,cy);ctx.lineTo(px+ww,cy+depth+ry);ctx.lineTo(px+ww*1.5,cy);ctx.closePath();ctx.fill();
+      }else if(id==='nebulosa'){
+        ctx.fillStyle=i%2?'#bb83d9':'#6e639d';ctx.beginPath();ctx.ellipse(px+ww*.5,cy+depth,ww*.6,ry*.7,0,0,TAU);ctx.fill();
+        ctx.fillStyle='#f2d8ff';ctx.beginPath();ctx.arc(px+ww*.5,cy+depth,2,0,TAU);ctx.fill();
+      }else if(id==='atlanta'){
+        ctx.fillStyle=i%2?'#478fbe':'#73bfcf';ctx.fillRect(px,cy,ww+1,depth+ry);ctx.strokeStyle='#b4f5dd';ctx.lineWidth=2;
+        ctx.beginPath();ctx.moveTo(px,cy+depth);ctx.quadraticCurveTo(px+ww*.5,cy+depth-ry*.6,px+ww,cy+depth);ctx.stroke();
       }else if(id==='deserto'){
         ctx.fillStyle=i%2?'#e3a271':'#a97b66';ctx.fillRect(px+1,cy,ww-2,depth+ry);ctx.strokeStyle='#ffe0aa';ctx.strokeRect(px+3,cy+7,ww-6,9);
       }else if(id==='pantano'){
@@ -182,22 +198,33 @@
     return{theme:id,center:width*.52,floor,power,...lighting(ctx,o),cachedBase:true};
   }
   function draw(ctx,image,level,{width,height,beat,progress,amount,mood=2,soft=false}){
-    const rect=level.frames[0],scale=Math.min(width*.9/(level.designWidth||440),height*.94/(level.designHeight||552));
-    const p=pose(level.id,beat,progress,amount);p.groundY=level.groundY||rect[3];p.contactX=level.contactX||rect[2]*.5;const x=width*.52+p.x*Math.min(height,width*1.1),floor=height*.935;
-    const tex=texture(image,rect,level.face,mood,level.id,level.faceClip,level.mouth,level.tears);
-    ctx.save();ctx.fillStyle='#15142e66';ctx.beginPath();ctx.ellipse(x,floor-2,rect[2]*scale*.28,7*scale,0,0,TAU);ctx.fill();ctx.restore();
-    const model=body(ctx,tex,x,floor,scale,p);
-    if(mood===0&&!soft&&level.tears){
-      // Tiny moving drops follow the cheek streams, always below the eyes.
-      ctx.save();ctx.fillStyle='#bdf6ff';
-      for(const [i,[tx,ty,dx,dy]] of level.tears.entries()){
-        const t=((beat*.22+i*.43)%1+1)%1,px=tx+dx*t,py=ty+dy*t,v=py/tex.height;
-        const point=RR_MESH.project(px/tex.width,v,tex.width,tex.height,p,x,floor,scale,[0,0]);
-        ctx.beginPath();ctx.ellipse(point[0],point[1],Math.max(.8,level.mouth[2]*scale*.065),Math.max(1.2,level.mouth[3]*scale*.23),p.lean-.12,0,TAU);ctx.fill();
-      }
-      ctx.restore();
+    const p=pose(level.id,beat,progress,amount),baseRect=level.frames[0];
+    // A small grounded slide and rock follow the song. The outfit stays solid.
+    p.lean*=.45;p.x*=.62;p.bend=0;p.step=0;p.leftFoot=0;p.rightFoot=0;p.lift=0;
+    const floor=height*.935,center=width*.52+p.x*Math.min(height,width*1.1);
+    const baseScale=Math.min(width*.93/(level.designWidth||440),height*.86/(level.designHeight||552));
+    let frame=0,nextFrame=0,blend=0;
+    if(!soft&&amount>0&&mood>=3&&level.frames.length>1){
+      const sequence=level.id==='brinquedos'?[0,2,1,2,0,3,1,0]:[0,1,2,1,0,3,2,1];
+      const step=beat/2,i=Math.floor(step),fraction=step-i;
+      frame=sequence[i%sequence.length];nextFrame=sequence[(i+1)%sequence.length];blend=smooth((fraction-.83)/.17);
     }
-    return {...model,phrase:p.phrase,pose:p,scale,frame:0,connected:true,mood:moods[mood].name};
+    function drawFrame(index,alpha){
+      const rect=level.frames[index],k=baseRect[3]/rect[3],scale=baseScale*k;
+      const ground=(level.contacts?.[index]||[index===0?(level.groundY||rect[3]):rect[3],index===0?(level.contactX||rect[2]*.5):rect[2]*.45]);
+      const local={...p,groundY:ground[0],contactX:ground[1]};
+      const tex=texture(image,rect,index===0?level.face:null,index===0?mood:2,level.id,level.faceClip,index===0?level.mouth:null,index===0?level.tears:null);
+      const x=center+(local.contactX-rect[2]*.5)*scale;
+      const model=body(ctx,tex,x,floor,scale,local,alpha);return{...model,scale,groundY:local.groundY,contactX:local.contactX,rect,tex,x};
+    }
+    const model=drawFrame(frame,1-blend);if(blend>.001)drawFrame(nextFrame,blend);
+    if(mood===0&&!soft&&level.tears){
+      ctx.save();ctx.fillStyle='#bdf6ff';for(const [i,[tx,ty,dx,dy]]of level.tears.entries()){
+        const t=((beat*.22+i*.43)%1+1)%1,q=projectRigid(tx+dx*t,ty+dy*t,model.groundY,model.contactX,model.x,floor,model.scale,p.lean);
+        ctx.beginPath();ctx.ellipse(q.x,q.y,Math.max(.8,level.mouth[2]*model.scale*.065),Math.max(1.2,level.mouth[3]*model.scale*.23),p.lean-.12,0,TAU);ctx.fill();
+      }ctx.restore();
+    }
+    return{x:center,floor,height:baseRect[3]*baseScale,lean:p.lean,backend:'rigid-illustration',bodyDrawCalls:blend>.001?2:1,groundContact:{x:model.x,y:floor},phrase:p.phrase,pose:p,scale:baseScale,frame,nextFrame,blend,connected:true,rigid:true,mood:moods[mood].name};
   }
-  window.RR_PERFORMANCE=Object.freeze({definitions,pose,moods,draw,platform,texture,lighting});
+  window.RR_PERFORMANCE=Object.freeze({definitions,pose,moods,draw,platform,texture,lighting,projectRigid});
 })();

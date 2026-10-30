@@ -17,7 +17,7 @@
       <header class="shell-header"><div class="orbit-wordmark"><span class="orbit-mark" aria-hidden="true"></span> ORBITHOP</div><div class="shell-meta"><i></i> CONEXÃO INTERDIMENSIONAL <span>—</span> VAMOS BRINCAR!</div></header>
       <div id="menuContent" class="menu-content"><span class="menu-kicker">UMA AVENTURA EM CADA BATIDA!</span>
         <h1 class="game-logo" aria-label="Robô Ritmado"><i class="logo-note" aria-hidden="true">♫</i><span class="logo-word logo-robot">Robô</span><span class="logo-word logo-rhythm">Ritmado</span><i class="logo-star" aria-hidden="true">✦</i></h1>
-        <p class="menu-story">Uma guitarra. Muitos mundos!<br>Vem brincar com <strong>Pixel!</strong></p>
+        <p class="menu-story">Uma guitarra. Muitos mundos!<br> Vem brincar com <strong>Pixel!</strong></p>
         <nav class="menu-nav" aria-label="Menu principal">
           <button id="menuPlay" class="orbit-button play" data-cue="play"><span class="button-icon" aria-hidden="true">▷</span>Jogar<span class="button-arrow" aria-hidden="true">↗</span></button>
           <button id="menuResume" class="orbit-button" data-cue="back" hidden><span class="button-icon" aria-hidden="true">↻</span>Continuar partida<span class="button-arrow" aria-hidden="true">→</span></button>
@@ -47,14 +47,15 @@
     </section><div id="gameCaption" class="game-caption" role="status" aria-live="polite" hidden><span id="captionApproach"></span><span id="captionResult"></span></div>
   `);
   document.body.insertAdjacentHTML('beforeend', `
-    <dialog id="safetyDialog" class="safety-dialog" aria-labelledby="safetyTitle" aria-describedby="safetyCopy">
-      <div class="safety-body"><span class="safety-icon" aria-hidden="true">♡</span><span class="dialog-kicker">ANTES DE ENCONTRAR A BATIDA</span><h2 id="safetyTitle">Aviso de Fotossensibilidade<br>e Epilepsia</h2>
-        <div class="safety-friends" aria-hidden="true"><span>♪</span><b>+ᴗ</b><span>♡</span></div><p class="safety-welcome">Vamos cuidar de você antes da diversão!</p><p id="safetyCopy">Este jogo contém luzes, animações e efeitos visuais que podem causar desconforto ou desencadear crises em pessoas fotossensíveis.</p>
-        <p>Antes de jogar, vá até <strong>Acessibilidade</strong> e ajuste os estímulos visuais, o movimento e a velocidade às suas necessidades.</p>
-        <button id="safetyAccessibility" class="orbit-button accessibility" data-cue="accessibility" autofocus><span class="button-icon" aria-hidden="true">◎</span>Abrir Acessibilidade<span class="button-arrow" aria-hidden="true">→</span></button>
-        <button id="closeSafety" class="safety-close" data-cue="back">Fechar aviso e ir ao menu</button>
-        <p class="safety-note">A opção Sensibilidade Visual reduz os estímulos, mas não garante ausência de risco. Você pode rever este aviso nas configurações.</p>
-      </div>
+    <dialog id="safetyDialog" class="safety-dialog" aria-labelledby="safetyTitle" aria-describedby="safetyCopy safetyRisk">
+      <div class="welcome-portrait"><img src="assets/pixel-boas-vindas-v11.png" alt="Pixel no traje padrão, de braços acolhedores"></div>
+      <div class="safety-body"><span class="dialog-kicker">UM ABRAÇO ANTES DA AVENTURA</span><h2 id="safetyTitle">Seu ritmo<br>cabe aqui!</h2><p class="safety-welcome">Olá, aspirante! Eu sou Pixel. ♡</p>
+      <p id="safetyCopy">Se você possui alguma deficiência ou necessidade singular, visite <strong>Acessibilidade</strong> antes da jornada. Vamos ajustar o jogo ao seu jeito?</p>
+      <div class="welcome-features"><span>◈ Cores e leitura</span><span>♪ Movimento e ritmo</span><span>☏ Legendas e tempo</span></div>
+      <p id="safetyRisk" class="welcome-warning"><strong>Cuidado com as luzes:</strong> o jogo contém luzes, animações e efeitos visuais que podem causar desconforto ou desencadear crises em pessoas fotossensíveis. Antes de jogar, ajuste os estímulos, o movimento e a velocidade às suas necessidades.</p>
+      <button id="safetyAccessibility" class="orbit-button accessibility" data-cue="accessibility" autofocus><span class="button-icon" aria-hidden="true">◎</span>Ajustar Acessibilidade<span class="button-arrow" aria-hidden="true">→</span></button>
+      <button id="closeSafety" class="safety-close" data-cue="back" aria-label="Fechar aviso e ir ao menu">Já está tudo certo. Vamos começar! →</button>
+      <p class="safety-note">Disponível o tempo todo no menu e em Opções. Sensibilidade Visual reduz os estímulos, mas não garante ausência de risco.</p></div>
     </dialog>
     <dialog id="settingsDialog" class="settings-dialog" aria-labelledby="settingsTitle">
       <div class="dialog-header"><div><span class="dialog-kicker">NO SEU RITMO</span><h2 id="settingsTitle">Configurações</h2></div><button id="closeSettings" class="close-icon" data-cue="back" aria-label="Fechar configurações">×</button></div>
@@ -77,8 +78,8 @@
   const appActions = document.createElement('div'); appActions.className = 'game-settings';
   appActions.innerHTML = '<button id="gameMenu" class="quiet-button" data-cue="back" aria-label="Pausar e voltar ao menu">☰ <span class="settings-label">Menu</span></button><button id="gameAccessibility" class="quiet-button" data-cue="accessibility" aria-label="Abrir Acessibilidade">◎</button>';
   document.querySelector('.top-actions').prepend(appActions);
-  document.querySelector('.brand').addEventListener('click',e=>{e.preventDefault();returnMenu();});
-  document.querySelector('footer span:last-child').textContent='VERSÃO 0.10 • SEIS MUNDOS PRA BRINCAR!';
+  document.querySelector('.brand')?.addEventListener('click',e=>{e.preventDefault();returnMenu();});
+  document.querySelector('footer span:last-child').textContent='VERSÃO 0.11 • OITO MUNDOS PRA BRINCAR!';
   const buttonInfo={menuPlay:['Jogar','Começar a aventura'],menuTutorial:['Tutorial','Aprender com Pixel'],menuOptions:['Opções','Ajustar sons e velocidade'],menuAccessibility:['Acessibilidade','Do seu jeitinho'],menuAbout:['Sobre Nós','Conheça nossa turma']};
   for(const [id,[title,sub]] of Object.entries(buttonInfo)){const button=$(id);button.setAttribute('aria-label',title);for(const node of [...button.childNodes])if(node.nodeType===Node.TEXT_NODE)node.remove();const label=document.createElement('span');label.className='button-copy';label.innerHTML='<b>'+title+'</b><small>'+sub+'</small>';button.insertBefore(label,button.querySelector('.button-arrow'));}
   let greetingUntil=0;
@@ -86,7 +87,7 @@
   let currentScreen = 'menu', toastTimer, lastFocused = null, lastColor = 'deuteranopia', dialogueTimer;
   function toast(message) { $('shellToast').textContent=message; $('shellToast').hidden=false; clearTimeout(toastTimer); toastTimer=setTimeout(()=>$('shellToast').hidden=true,4200); }
   function screen(name) {
-    currentScreen = name; document.body.dataset.screen=name;
+    currentScreen = name; document.body.dataset.screen=name;if(name!=='game')RR_GAME.dismissNotices();
     $('sceneShell').setAttribute('aria-label',name==='cutscene'?'Prólogo animado: a viagem de Pixel':name==='tutorial'?'Tutorial em OrbitHop com Pixel':'Menu principal de Robô Ritmado em OrbitHop');
     document.querySelector('.app').inert=name!=='game';
     $('menuContent').hidden=name!=='menu'; $('cinemaUI').hidden=name!=='cutscene'; $('tutorialUI').hidden=name!=='tutorial';
@@ -138,6 +139,8 @@
   $('reviewSafety').onclick=()=>{closeSettings();document.body.classList.add('warning-pending');RR_AUDIO.silence();$('safetyDialog').showModal();};
   $('safetyAccessibility').onclick=()=>{dismissWarning();openSettings('accessibility');}; $('closeSafety').onclick=dismissWarning;
   $('safetyDialog').addEventListener('cancel',e=>{e.preventDefault();dismissWarning();});
+  for(const b of document.querySelectorAll('[data-return-menu]'))b.onclick=returnMenu;
+  $('phaseAccessibility').onclick=()=>openSettings('accessibility');
   $('menuOptions').onclick=()=>openSettings('options'); $('menuAccessibility').onclick=()=>openSettings('accessibility');
   $('menuAbout').onclick=()=>toast('Estamos Trabalhando Nisso por enquanto!!');
   $('gameMenu').onclick=returnMenu;

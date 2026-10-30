@@ -2,6 +2,12 @@
   'use strict';
   const $ = id => document.getElementById(id);
   const LEVELS = window.RR_LEVELS;
+  function modal(id,visible){
+    const node=$(id),dialog=node.closest('dialog');node.hidden=!visible;
+    if(dialog){if(visible&&!dialog.open)dialog.showModal();else if(!visible&&dialog.open)dialog.close();}
+    frameDirty=true;dancerDirty=true;
+  }
+
   let currentPreferences=window.RR_SETTINGS.get();
   const preferences=()=>currentPreferences;
   window.addEventListener('rr-settings',()=>{currentPreferences=window.RR_SETTINGS.get();frameDirty=true;dancerDirty=true;});
@@ -20,6 +26,7 @@
     $('captionResult').textContent = text; captionUntil = performance.now() + seconds * 1000;
   }
   let levelIndex = 0, level = LEVELS[0], bankedScore = 0, toysUnlocked = false, unlockedThrough = 0;
+  let offset=0;
   let BPM, BEAT, SONG_BEATS, DURATION, COLORS, MELODY, BASS, CHART, MAX_POINTS, GOAL, FRAMES;
   function configureLevel(index) {
     levelIndex = index; level = LEVELS[index];
@@ -27,10 +34,13 @@
     BPM = level.bpm; BEAT = 60 / BPM / runRate; SONG_BEATS = level.beats; DURATION = SONG_BEATS * BEAT;
     COLORS = palette(); MELODY = level.melody; BASS = level.bass; FRAMES = level.frames;
     CHART = [];
-    for (let beat = 4, n = 0; beat < SONG_BEATS - 4; beat++) {
+    for (let beat = 4, n = 0; beat < SONG_BEATS - 1; beat++) {
       if (level.skipBeat(beat)) continue;
       CHART.push({ beat, lane: level.sequence[n++ % level.sequence.length], time: beat * BEAT });
     }
+    // Closing note's acceptance deadline coincides with the music end, even
+    // with timing calibration. There is no four-beat empty ending anymore.
+    CHART.push({beat:SONG_BEATS-.24/(runRate*BEAT),lane:level.sequence[CHART.length%level.sequence.length],time:DURATION-.24/runRate-offset/1000,closing:true});
     MAX_POINTS = CHART.length * 100; GOAL = level.goal;
     if(GOAL>MAX_POINTS)throw new Error("A meta precisa caber na música.");
   }
@@ -61,7 +71,7 @@
   let state = 'ready', previousState = '', score = 0, combo = 0, maxCombo = 0;
   let stats = { perfect: 0, good: 0, near: 0, miss: 0 }, best = 0;
   let audio = null, master = null, analyser = null, compressor = null, noise = null;
-  let epoch = 0, step = -8, scheduler = null, offset = 0, generation = 0, starting = false;
+  let epoch = 0, step = -8, scheduler = null, generation = 0, starting = false;
   let soft = matchMedia('(prefers-reduced-motion: reduce)').matches;
   let lastFrame = performance.now(), lastSpeech = 0, judgmentUntil = 0, lastCount = null, visualTime = 0;
   const flashes = [0, 0, 0, 0], pressed = [false, false, false, false];
@@ -81,9 +91,10 @@
   function save(key, value) { try { localStorage.setItem(key, value); } catch {} }
   const formatTime = t => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
   const worldButtons = RR_CAMPAIGN.map((stage,i)=>{
-    const button=document.createElement('button');button.id=['worldCandy','worldToys','worldIce','worldSky','worldDesert','worldSwamp'][i]||'worldFuture'+i;button.className='world-chip';
+    const button=document.createElement('button');button.id=['worldCandy','worldToys','worldIce','worldSky','worldDesert','worldSwamp','worldMist','worldOcean'][i]||'worldFuture'+i;button.className='world-chip';
     button.innerHTML=String(i+1).padStart(2,'0')+' <span>'+stage.name+'</span><small></small>';button.disabled=true;$('journeyNav').append(button);return button.id;
   });
+  const phaseButtons=worldButtons.map((id,i)=>{const b=$(id).cloneNode(true);b.id='revisit-'+id;b.addEventListener('click',()=>{document.querySelector('.phase-worlds').open=false;selectWorld(i);});$('phaseJourneyNav').append(b);return b;});
   function updateWorldButtons() {
     worldButtons.forEach((id,i)=>{
       const button=$(id),future=i>=LEVELS.length,locked=future||i>unlockedThrough;
@@ -92,6 +103,7 @@
       button.title=future?'Em breve · Meta planejada: '+RR_CAMPAIGN[i].goal+' pontos':locked?'Conclua o mundo anterior e carregue o portal.':'Ensaiar em '+LEVELS[i].name+' (novo placar)';
       button.dataset.future=String(future);
       const lock=button.querySelector('small');if(lock)lock.textContent=future?'Em breve':locked?'🔒':'✦';
+      const copy=phaseButtons[i];copy.disabled=button.disabled;copy.title=button.title;copy.dataset.future=button.dataset.future;copy.setAttribute('aria-current',button.getAttribute('aria-current'));copy.querySelector('small').textContent=lock.textContent;
       if(i===levelIndex&&document.body.dataset.screen==='game')button.scrollIntoView({block:'nearest',inline:'center'});
     });
   }
@@ -105,6 +117,8 @@
     $('levelSubtitle').textContent = level.subtitle;
     $('trackName').textContent = level.track;
     document.querySelectorAll('.track-crown span').forEach(el=>el.textContent=level.ornament);
+    $('albumCover').src=level.album;$('albumCover').alt='Capa de '+level.song;$('phaseAlbum').src=level.album;
+    $('phaseFlurries').innerHTML=Array.from({length:10},(_,i)=>'<i style="--i:'+i+'">'+level.ornament+'</i>').join('');
     $('danceStyle').textContent=RR_PERFORMANCE.definitions[level.id].style;
     $('dancePhrase').textContent=RR_PERFORMANCE.definitions[level.id].name;
     $('tempoLabel').textContent = `${Math.round(BPM * runRate)} BPM · ${runRate < 1 ? Math.round(runRate * 100) + '% DO RITMO' : levelIndex ? 'NOVO RITMO' : 'FÁCIL'}`;
@@ -112,8 +126,8 @@
     $('time').textContent = `0:00 / ${formatTime(Math.ceil(DURATION))}`;
     $('songFill').style.width = '0%';
     document.querySelector('.song-progress').setAttribute('aria-valuenow', '0');
-    const greetings={doces:'O caminho de casa<br>começa no <em>ritmo.</em>',brinquedos:'Todo mundo no<br><em>desfile de estrelas!</em>',gelo:'Pés leves na neve.<br>Vamos <em>valsar?</em>',ceu:'Lá no alto, a música<br><em>abraça as nuvens!</em>',deserto:'Nosso ritmo faz<br><em>as dunas dançarem!</em>',pantano:'Raízes e gotas no<br><em>balanço da floresta!</em>'};
-    $('introTitle').innerHTML = greetings[level.id];
+    const greetings={doces:'O caminho de casa<br>começa no <em>ritmo.</em>',brinquedos:'Todo mundo no<br><em>desfile de estrelas!</em>',gelo:'Pés leves na neve.<br>Vamos <em>valsar?</em>',nebulosa:'Uma melodia brilha<br><em>entre os vaga-lumes!</em>',atlanta:'Vamos seguir<br><em>o compasso das marés!</em>',ceu:'Lá no alto, a música<br><em>abraça as nuvens!</em>',deserto:'Nosso ritmo faz<br><em>as dunas dançarem!</em>',pantano:'Raízes e gotas no<br><em>balanço da floresta!</em>'};
+    $('introTitle').innerHTML = greetings[level.id].replace(/<br>/g,' ');
     $('introCopy').innerHTML = levelIndex ? `O traje mudou. A música também!<br>${bankedScore ? bankedScore.toLocaleString('pt-BR') + ' pontos vieram com você.' : 'Vamos tocar em '+level.name+'?'}` : 'Pixel se perdeu entre os mundos.<br>Toque na batida e carregue o portal!';
     $('introDetail').textContent = `${Math.ceil(DURATION)} segundos de música · Meta: ${GOAL.toLocaleString('pt-BR')} pontos`;
     $('pixelArt').setAttribute('aria-label', `Pixel dançando com a guitarra e o traje de ${level.name}`);
@@ -126,7 +140,7 @@
     encourage:['Eu confio em você! A próxima é nossa!','Tudo bem errar. Vamos tentar juntos de novo?','Respira. Olhe o alvo. Eu estou aqui com você!','Você pode aprender! Cada tentativa conta.','Não desista! Eu acredito no seu ritmo!'],
     waiting:['Siga no seu tempo. Vamos juntos!','Ouça a batida e olhe o encontro das setas.','Minha guitarra e eu estamos com você!']
   };
-  const welcomes={doces:'Um passinho de açúcar de cada vez. Vem comigo!',brinquedos:'Vamos brincar com o ritmo? Você faz parte do show!',gelo:'Pés leves na neve. Vamos aprender essa valsa?',ceu:'Nossa música vai até as nuvens. Vamos juntos!',deserto:'Sinta a batida das dunas. Nosso sol é a música!',pantano:'Cada gotinha tem um ritmo. Vamos descobrir o nosso!'};
+  const welcomes={doces:'Um passinho de açúcar de cada vez. Vem comigo!',brinquedos:'Vamos brincar com o ritmo? Você faz parte do show!',gelo:'Pés leves na neve. Vamos aprender essa valsa?',nebulosa:'Uma luz de cada vez. Vamos brilhar juntos!',atlanta:'A maré dança com a gente. Eu confio no seu ritmo!',ceu:'Nossa música vai até as nuvens. Vamos juntos!',deserto:'Sinta a batida das dunas. Nosso sol é a música!',pantano:'Cada gotinha tem um ritmo. Vamos descobrir o nosso!'};
   const phraseCounts={};let lastBalloon=0,lastBalloonTone='welcome';
   function speak(text,tone='welcome'){
     const bubble=$('pixelSpeech');$('pixelSpeechText').textContent=text;bubble.dataset.tone=tone;
@@ -149,44 +163,42 @@
     danceTime = 0; danceFrame = 0; danceLevel = 0; reaction = 0; resetPerformance();
     score = 0; combo = 0; maxCombo = 0; notes = []; particles = []; rings = []; danceSparks.length = 0;
     stats = { perfect: 0, good: 0, near: 0, miss: 0 }; reaction = 0;
-    $('intro').hidden = false; $('results').hidden = true; $('pauseOverlay').hidden = true;
+    modal('intro',true); modal('results',false); modal('pauseOverlay',false);
     $('countdown').innerHTML = ''; $('judgment').classList.remove('show');
     $('pause').disabled = true; $('offset').disabled = false; $('spriteStatus').hidden = true;
     state = 'ready'; updateLevelUI();speak(welcomes[level.id]);
     // Wait for visible layout before committing the decoded costume to the canvas.
     await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
     if (token !== generation) return;
-    resize(); resizeDancer(); spriteReady = true; dancer.style.visibility = 'visible';
+    resize(); resizeDancer(); spriteReady = true; dancer.style.visibility = 'visible';modal('intro',true);
   }
   async function selectWorld(index) {
     if (settingsLocked() || index > unlockedThrough || index>=LEVELS.length) return;
     try { await showLevel(index, 0); }
     catch (error) { state = 'ready'; $('spriteStatus').hidden = false; $('spriteStatus').textContent = error.message; updateWorldButtons(); }
   }
-  async function travel() {
-    if (levelIndex >= LEVELS.length-1 || state !== 'results' || score < GOAL) return;
-    const next = levelIndex + 1, carry = bankedScore + score;levelAssets(next);
-    $('travelDestination').textContent = LEVELS[next].name+'!';
-    state = 'transition'; updateWorldButtons(); $('nextStage').disabled = true;
-    $('travelOverlay').hidden = false; $('retryTravel').hidden = true;
-    $('travelSummary').textContent = `${carry.toLocaleString('pt-BR')} pontos viajam com você.`;
-    $('travelStatus').textContent = 'Abrindo o portal…';
-    try {
-      if (audio && audio.state === 'running') {
-        [72,76,79,84,88].forEach((n, i) => tone(n, audio.currentTime + i * .09, .5, .055, 'sine'));
-      }
-      await Promise.all([assets[next].sprite.ready, assets[next].background.ready,
-        new Promise(resolve => setTimeout(resolve, RR_SETTINGS.gentle() ? 250 : 2200))]);
-      await showLevel(next, carry);
-      $('travelOverlay').hidden = true;
-      $('announcer').textContent = 'Bem-vindo a '+level.name+'. Seus pontos foram preservados. Clique em Vamos tocar para ouvir a nova música.';
-      $('start').focus({ preventScroll: true });
-    } catch (error) {
-      state = 'results'; $('nextStage').disabled = false; updateWorldButtons();
-      $('travelStatus').textContent = error.message; $('retryTravel').hidden = false;
-    }
-    $('nextStage').disabled = false;
+  let traveling=false;
+  const traveler=RR_TRAVEL.create($('travelCanvas'));
+  async function travel(){
+    if(traveling||state!=='results'||score<GOAL)return;
+    const next=levelIndex+1,ending=next>=LEVELS.length,carry=bankedScore+score,from={level,sprite,background:assets[levelIndex].background.image};
+    traveling=true;state='transition';modal('results',false);updateWorldButtons();$('retryTravel').hidden=true;
+    $('travelSummary').textContent=carry.toLocaleString('pt-BR')+' pontos seguem com você.';
+    $('travelDestination').textContent=ending?'Um novo sinal nos chama…':LEVELS[next].name;
+    $('travelOverlay').showModal();
+    try{
+      let to=null;if(!ending){levelAssets(next);await Promise.all([assets[next].sprite.ready,assets[next].background.ready]);to={level:LEVELS[next],sprite:assets[next].sprite.image,background:assets[next].background.image};}
+      await RR_AUDIO.unlock();RR_AUDIO.story(1);
+      await traveler.play(from,to);
+      RR_AUDIO.silence();$('travelOverlay').close();
+      if(ending){state='results';modal('results',true);$('resultMessage').textContent='O sinal da Masmorra Ardente chegou! Os dois últimos mundos estão em preparação. Seu caminho ficou salvo.';updateWorldButtons();}
+      else{await showLevel(next,carry);$('announcer').textContent='Pixel chegou com coragem a '+level.name+'. O novo outfit está pronto. Confira a fase e entre no ritmo.';}
+    }catch(error){state='results';$('travelOverlay').close();modal('results',true);$('resultMessage').textContent='O portal precisa de mais um instante. '+error.message;updateWorldButtons();}
+    finally{traveling=false;}
   }
+  $('pauseTravel').onclick=()=>traveler.toggle();$('skipTravel').onclick=()=>traveler.finish();
+  $('travelOverlay').addEventListener('cancel',e=>{e.preventDefault();traveler.toggle();});
+  for(const [id,action]of [['phaseDialog',()=>{}],['resultDialog',()=>{}],['pauseDialog',()=>resume()]])$(id).addEventListener('cancel',e=>{e.preventDefault();action();});
   let manualSoft = soft;
   function setSoft() {
     soft = manualSoft || RR_SETTINGS.gentle();
@@ -223,7 +235,7 @@
     if(state==='paused'&&!dancerDirty)return;
     dancerDirty=false;danceCtx.clearRect(0,0,dancerWidth,dancerHeight);
     const still=reducedMotion||preferences().sensitivity;
-    const paused=state==='paused'||document.body.dataset.screen!=='game'||document.hidden;
+    const paused=state==='paused'||document.body.dataset.screen!=='game'||document.hidden||!!document.querySelector('dialog[open]');
     if(!paused){
       // Integrate the SAME beat clock even when dance speed is reduced. No jump
       // to a different clock occurs when an accessibility setting changes.
@@ -241,6 +253,7 @@
     const mood=Math.max(0,Math.min(4,Math.round(moodValue)));
     danceFrame=0;danceLevel=Math.min(3,Math.floor(progress*4));
     danceModel=RR_PERFORMANCE.draw(danceCtx,sprite,level,{width:dancerWidth,height:dancerHeight,beat,progress,amount:still?0:(soft?.55:1)*(.78+quality*.65),mood,soft});
+    danceFrame=danceModel.frame;
     const power=Math.min(1,Math.max(0,score/GOAL)*.55+quality*.25+Math.min(1,combo/12)*.2);
     stageModel=RR_PERFORMANCE.platform(stageCtx,{width:dancerWidth,height:stageHeight,floor:danceModel.floor,x:danceModel.x,id:level.id,colors:COLORS,accent:level.accent,power,beat,soft,still});
     if($('dancePhrase').textContent!==danceModel.phrase)$('dancePhrase').textContent=danceModel.phrase;
@@ -319,6 +332,10 @@
               tone(m,when,.9,.07,'sine');tone(m+12,when,.5,.016,'triangle');
               if(within===0)tone(root,when,1.7,.11,'sine');
               if(within===2)percussion(when);
+            }else if(kind==='mist'){
+              tone(root,when,.7,.08,'sine');tone(m+12,when,.6,.07,'sine');tone(m+19,when,.22,.02,'triangle');if(within===0)kick(when);if(within===2)percussion(when);
+            }else if(kind==='ocean'){
+              tone(root,when,.65,.10,'sine');tone(m,when,.52,.075,'triangle');tone(m+12,when,.25,.025,'sine');if(within===0||within===2)tone(root+24,when,.06,.04,'sine');if(within===1||within===3)percussion(when);
             }else if(kind==='desert'){
               tone(root,when,.27,.12,'triangle');tone(m,when,.22,.10,'triangle');tone(m+12,when,.11,.022,'sine');
               if(within===0||within===2)kick(when);else {tone(root+24,when,.06,.035,'sine');percussion(when);}
@@ -348,6 +365,7 @@
           }
         }
       }
+      if(step===SONG_BEATS*2-1&&when>=now)tone(MELODY[0]+12,epoch+DURATION-.24/runRate,.20/runRate,.04,'sine');
       step++;
     }
   }
@@ -397,7 +415,7 @@
       particles = []; rings = []; flashes.fill(0); pressed.fill(false); judgmentUntil = 0;
       danceSparks.length = 0; reaction = 0; danceTime = 0; danceFrame = 0; resetPerformance();
       $('judgment').classList.remove('show');
-      $('intro').hidden = true; $('pauseOverlay').hidden = true; $('results').hidden = true;
+      modal('intro',false); modal('pauseOverlay',false); modal('results',false);
       $('pause').disabled = false; $('pause').textContent = 'Ⅱ'; $('pause').setAttribute('aria-label', 'Pausar música');
       $('offset').disabled = true;
       state = 'countdown'; epoch = audio.currentTime + .15 + 4 * BEAT;
@@ -407,8 +425,8 @@
       $('announcer').textContent = 'Prepare-se. A música vai começar.';
       scheduleMusic(); scheduler = setInterval(scheduleMusic, 25);
     } catch (error) {
-      state = 'ready'; $('intro').hidden = false;
-      $('pauseOverlay').hidden = true; $('results').hidden = true;
+      state = 'ready'; modal('intro',true);
+      modal('pauseOverlay',false); modal('results',false);
       $('audioError').textContent = error.message || 'Não foi possível iniciar o áudio. Tente novamente.';
       $('audioError').hidden = false; $('pause').disabled = true; $('offset').disabled = false;
       updateWorldButtons();
@@ -418,7 +436,7 @@
     if (!['playing', 'countdown'].includes(state)) return;
     previousState = state; state = 'paused';frameDirty=true;dancerDirty=true;
     clearInterval(scheduler); pressed.fill(false);
-    $('pauseOverlay').hidden = false; $('pause').textContent = '▶';
+    modal('pauseOverlay',true); $('pause').textContent = '▶';
     $('pause').setAttribute('aria-label', 'Continuar música');
     await audio.suspend();
     $('resume').focus({ preventScroll: true });
@@ -429,7 +447,7 @@
     starting = true;
     try {
       await audio.resume();
-      state = previousState; $('pauseOverlay').hidden = true;
+      state = previousState; modal('pauseOverlay',false);
       $('pause').textContent = 'Ⅱ'; $('pause').setAttribute('aria-label', 'Pausar música');
       scheduleMusic(); scheduler = setInterval(scheduleMusic, 25);
       $('announcer').textContent = 'Vamos continuar!'; caption('Continue na batida!', 1);
@@ -502,7 +520,7 @@
     $('songFill').style.width = '100%';
     document.querySelector('.song-progress').setAttribute('aria-valuenow', '100');
     $('time').textContent = `${formatTime(Math.ceil(DURATION))} / ${formatTime(Math.ceil(DURATION))}`;
-    $('results').hidden = false;
+    modal('results',true);
     $('retryCoach').hidden=score>=GOAL;
     if(score<GOAL){
       const c=$('retryPixel'),cx=c.getContext('2d'),r=FRAMES[0],k=Math.min(92/r[2],144/r[3]);cx.clearRect(0,0,c.width,c.height);cx.drawImage(sprite,...r,(100-r[2]*k)/2,150-r[3]*k,r[2]*k,r[3]*k);
@@ -519,13 +537,13 @@
     const charged = score >= GOAL;
     speak(charged?'Conseguimos! Eu sabia que você podia!':'Seu esforço vale muito. Vamos tentar outra vez?',charged?'celebrate':'encourage');
     const hasNext=levelIndex<LEVELS.length-1;
-    if(charged)$('energyHint').textContent=hasNext?'Portal aberto para '+LEVELS[levelIndex+1].name+'!':'Seis mundos no nosso ritmo!';
+    if(charged)$('energyHint').textContent=hasNext?'Portal aberto para '+LEVELS[levelIndex+1].name+'!':'Oito mundos no nosso ritmo!';
     if(charged&&hasNext){unlockedThrough=Math.max(unlockedThrough,levelIndex+1);toysUnlocked=true;save('rr-worlds-v07',unlockedThrough);save('robo-ritmado-toys-unlocked','true');}
     $('resultPill').textContent=charged?'✦ FASE '+(levelIndex+1)+' CONCLUÍDA':'♡ MAIS UMA TENTATIVA JUNTOS';
     $('resultTitle').textContent = charged ? (levelIndex ? 'Que grande show!' : 'O portal despertou!') : score ? 'Você fez música!' : 'Vamos tentar juntos?';
-    $('resultMessage').textContent = charged ? (hasNext?LEVELS[levelIndex+1].name+' espera por você!':'Você concluiu os seis mundos disponíveis! A aventura terá dez fases.') : `Você fez ${score.toLocaleString('pt-BR')} de ${GOAL.toLocaleString('pt-BR')} pontos. A próxima fase espera: vamos praticar?`;
+    $('resultMessage').textContent = charged ? (hasNext?LEVELS[levelIndex+1].name+' espera por você!':'Você concluiu os oito mundos disponíveis! Vamos descobrir o próximo sinal?') : `Você fez ${score.toLocaleString('pt-BR')} de ${GOAL.toLocaleString('pt-BR')} pontos. A próxima fase espera: vamos praticar?`;
     $('resultDetail').textContent = `Combo: ${maxCombo} · Precisão: ${accuracy}% · Total: ${(bankedScore + score).toLocaleString('pt-BR')}`;
-    $('nextStage').hidden = !(charged && hasNext);
+    $('nextStage').hidden = !(charged && hasNext);$('lastPortal').hidden=!(charged&&!hasNext);
     if(hasNext)$('nextStage').innerHTML='Viajar para '+LEVELS[levelIndex+1].name+' <span>✦</span>';
     $('playAgain').classList.toggle('replay-secondary', charged && hasNext);
     $('resultHint').textContent = bankedScore ? `Você trouxe ${bankedScore.toLocaleString('pt-BR')} pontos dos mundos anteriores.` : charged ? 'Seus pontos seguem com você pelo portal.' : `Faltaram ${Math.max(0, GOAL - score).toLocaleString('pt-BR')} pontos para abrir o portal.`;
@@ -588,7 +606,7 @@
     requestAnimationFrame(draw);
     const dt = Math.min(.05, (timestamp - lastFrame) / 1000); lastFrame = timestamp;
     if (document.body.dataset.screen !== 'game'||document.hidden) return;
-    if(state==='paused'&&!frameDirty)return;frameDirty=false;
+    if((state==='paused'||document.querySelector('dialog[open]'))&&!frameDirty)return;frameDirty=false;
     if (state !== 'paused') visualTime += dt;
     const active = state === 'playing' || state === 'countdown';
     let t = active || state === 'paused' || state === 'results' ? chartTime() : -4 * BEAT;
@@ -605,7 +623,7 @@
     if (state === 'playing') {
       if (musicT > BEAT * .8) $('countdown').innerHTML = '';
       for (const note of notes) if (!note.result && t > note.time + .24 / runRate) judge(note, 'miss');
-      if (musicT >= DURATION + Math.max(0, offset / 1000)) finish();
+      if (musicT >= DURATION){for(const note of notes)if(!note.result)judge(note,'miss');finish();}
     }
     if (active && state !== 'results') {
       const progress = Math.min(1, Math.max(0, musicT / DURATION));
@@ -677,8 +695,8 @@
         ctx.beginPath(); ctx.arc(laneX(lane), target, size * (.65 + pulse * .08), 0, Math.PI * 2); ctx.stroke(); ctx.restore();
       }
       arrow(laneX(lane), target, lane, size + (flashes[lane] > .1 ? 4 : 0), COLORS[lane], false, soft ? 0 : 7);
-      ctx.font = 'bold 12px Trebuchet MS, Arial'; ctx.fillStyle = '#c2b0d3'; ctx.textAlign = 'center';
-      ctx.fillText(DIRECTIONS[lane].toUpperCase(), laneX(lane), target + 44);
+      ctx.font = `bold ${Math.max(7,Math.min(12,width/48))}px Trebuchet MS, Arial`; ctx.fillStyle = '#e4d8ed'; ctx.textAlign = 'center';
+      ctx.fillText(DIRECTIONS[lane].toUpperCase(), laneX(lane), target + (width<350?37:50), laneWidth*.94);
     }
     for (const note of notes) {
       if (note.result) continue;
@@ -733,7 +751,7 @@
     }
   }
   $('start').addEventListener('click', start);
-  $('nextStage').addEventListener('click', travel);
+  $('nextStage').addEventListener('click', travel);$('lastPortal').addEventListener('click',travel);
   $('retryTravel').addEventListener('click', () => {
     travel();
   });
@@ -764,6 +782,7 @@
       event.preventDefault();
       if (!event.repeat && !pressed[lane]) { pressed[lane] = true; input(lane); }
     } else if (event.key === 'Escape' && !event.repeat) {
+      event.preventDefault();
       if (state === 'paused') resume(); else pause();
     }
   });
@@ -783,7 +802,7 @@
   // Read-only diagnostics for verifying timing, scoring, audio and pause behavior.
   // Gameplay has no autoplay or score-writing test hooks.
   Object.defineProperty(window, 'pixelDiagnostics', { value: Object.freeze({
-    snapshot: () => ({ state, rate: runRate, arrowSpeed: runArrowSpeed, palette: [...COLORS], level: levelIndex + 1, world: level.id, bpm: BPM, song: level.song,
+    snapshot: () => ({ state, transition:traveler.snapshot(), rate: runRate, arrowSpeed: runArrowSpeed, palette: [...COLORS], level: levelIndex + 1, world: level.id, bpm: BPM, song: level.song,
       duration: DURATION, sprite: level.sprite, choreography: danceModel, instrument: level.instrument, meter: level.meter, background: level.background, stage: stageModel, emotion: {value:moodValue,name:RR_PERFORMANCE.moods[Math.round(moodValue)].name,recent:[...recentResults]}, musicSignature: MELODY.join(',') + '/' + BASS.join(','),
       bankedScore, totalScore: bankedScore + score, unlocked: toysUnlocked, unlockedThrough,
       effects: { trackParticles: particles.length, rings: rings.length, dancerParticles: danceSparks.length, reduced: soft },
@@ -792,7 +811,7 @@
       goal: GOAL, offset, audioState: audio?.state || 'not-started',
       dancer: { ready: spriteReady, frame: danceFrame, level: danceLevel, time: danceTime,
         reaction: reactionKind, reactionRemaining: reaction, width: dancerWidth, height: dancerHeight,
-        sourceWidth: sprite.naturalWidth, sourceHeight: sprite.naturalHeight, sourceRect: [...FRAMES[0]],
+        sourceWidth: sprite.naturalWidth, sourceHeight: sprite.naturalHeight, sourceRect: [...FRAMES[danceFrame]],
         sourceRects: FRAMES.map(r=>[...r]),
         visible: dancer.style.visibility !== 'hidden' },
       notes: notes.map(n => ({ lane: n.lane, time: n.time, result: n.result })) }),
@@ -812,8 +831,9 @@
   window.RR_GAME = Object.freeze({
     pause, resume, palette,
     canResume: () => state === 'paused',
-    stop() { ++generation; clearInterval(scheduler); stopVoices(); state = 'ready'; notes = []; pressed.fill(false); },
-    async adventure() { await showLevel(0, 0); await start(); if (state === 'ready') throw new Error($('audioError').textContent || 'Não foi possível iniciar a música.'); }
+    dismissNotices(){for(const id of ['intro','pauseOverlay','results'])modal(id,false);},
+    stop() { for(const id of ['intro','pauseOverlay','results'])modal(id,false);++generation; clearInterval(scheduler); stopVoices(); state = 'ready'; notes = []; pressed.fill(false); },
+    async adventure() { await showLevel(0, 0); }
   });
   resize(); resizeDancer(); requestAnimationFrame(draw);
 })();
