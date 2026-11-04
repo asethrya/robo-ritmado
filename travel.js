@@ -22,7 +22,7 @@
     if(time<2.7){open=smooth((time-1)/2.1);guitarPower=smooth(time/2);caption('channel','Agora eu entendi… nossa música pode abrir o caminho. Vamos juntos!');}
     else if(time<4.4){open=1;phase='open';guitarPower=1;caption('open','Portal afinado! Desta vez, eu escolho seguir em frente.');}
     else if(time<6.8){open=1;phase='walk-in';const p=smooth((time-4.4)/2.4);x=mix(startX,portalX,p);walk=time*1.4;caption('walk','Tenho coragem, minha guitarra e você. Vamos nessa!');}
-    else{phase='enter';open=1;const p=smooth((time-6.8)/1.5);x=portalX;fy=mix(floor,portalY+H*.06,p);h=H*(1-p*.95);alpha=1-smooth((p-.6)/.4);caption('enter',to?'♪ Conexão encontrada! Próxima parada: '+to.level.name+'!':'Um novo sinal… a Masmorra Ardente está chamando! Continua em breve.');}
+    else{phase='enter';open=1;const p=smooth((time-6.8)/1.5);x=portalX;fy=mix(floor,portalY+H*.06,p);h=H*(1-p*.95);alpha=1-smooth((p-.6)/.4);caption('enter',to?'♪ Conexão encontrada! Próxima parada: '+to.level.name+'!':'O próximo caminho ainda está bloqueado. A jornada continua em breve.');}
    }else{
     open=1;phase='walk-out';const p=smooth((time-8.5)/2.5);x=mix(portalX,startX,p);h=H*(.16+.84*smooth((time-8.4)/1.0));fy=mix(portalY+H*.15,floor,smooth((time-8.4)/1.0));alpha=smooth((time-8.4)/.65);walk=time*1.1;
     caption('arrive','Chegamos a '+to.level.name+'! Roupa nova, palco novo… a nossa coragem é a mesma!');if(time>10.8){phase='landed';open=1-smooth((time-10.8)/1.2);walk=0;caption('landed','Pronto para aprender o ritmo deste mundo? Eu estou com você!');}

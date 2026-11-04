@@ -12,7 +12,9 @@
     atlanta:{style:'Dança das marés',name:'Onda de cristal',phrases:['Passo da maré','Balanço de coral','Órbita das conchas','Onda de alegria']},
     deserto:{style:'Dança das dunas',name:'Passos do sol',phrases:['Balanço das dunas','Passo solar','Onda de areia','Grande final do sol']},
     pantano:{style:'Groove da floresta',name:'Balanço das raízes',phrases:['Passo de raiz','Onda de folhas','Groove dos vaga-lumes','Abraço da floresta']},
-    ceu:{style:'Dança contemporânea',name:'Órbita das nuvens',phrases:['Respiração das nuvens','Onda celestial','Passo em órbita','Abraço das estrelas']}
+    ceu:{style:'Dança contemporânea',name:'Órbita das nuvens',phrases:['Respiração das nuvens','Onda celestial','Passo em órbita','Abraço das estrelas']},
+    masmorra:{style:'Rock vulcânico',name:'Pulso de magma',phrases:['Passo da forja','Dupla batida','Solo de magma','Ritmo incandescente']},
+    colina:{style:'Rock melódico',name:'Voo das pétalas',phrases:['Passo escarlate','Onda de pétalas','Volta do mirante','Acorde da jornada']}
   });
   // Every dance uses one connected, complete illustration. No ragdoll, joints,
   // separately rotating limbs or instantaneous pose changes are involved.
@@ -103,7 +105,8 @@
     ctx.clearRect(0,0,width,height);
     x=width*.52;
     const rx=width*.44,ry=Math.min(28,width*.073),cy=floor,depth=Math.min(24,width*.06),intensity=soft?.12:.25+power*.55;
-    const tint=id==='doces'?'#59325e':id==='brinquedos'?'#2d4772':id==='gelo'?'#253957':id==='deserto'?'#68454b':id==='pantano'?'#254b4b':'#49405e';
+    const stageTints={doces:'#59325e',brinquedos:'#2d4772',gelo:'#253957',deserto:'#68454b',pantano:'#254b4b',masmorra:'#5b2339',colina:'#67294c'};
+    const tint=stageTints[id]||'#49405e';
     ctx.save();
     // A stable, dark scenic backing separates the original outfit from the view.
     const halo=ctx.createRadialGradient(x,cy-height*.42,12,x,cy-height*.42,width*.7);
@@ -130,6 +133,13 @@
         ctx.fillStyle=i%2?'#e3a271':'#a97b66';ctx.fillRect(px+1,cy,ww-2,depth+ry);ctx.strokeStyle='#ffe0aa';ctx.strokeRect(px+3,cy+7,ww-6,9);
       }else if(id==='pantano'){
         ctx.fillStyle=i%2?'#658d70':'#446d60';ctx.beginPath();ctx.ellipse(px+ww*.5,cy+depth,ww*.65,ry*.7,-.3,0,TAU);ctx.fill();
+      }else if(id==='masmorra'){
+        ctx.strokeStyle=i%2?'#ffc486':'#ee739a';
+        ctx.lineWidth=3;
+        ctx.beginPath();ctx.moveTo(px,cy+2);ctx.lineTo(px+ww*.53,cy+depth);ctx.lineTo(px+ww,cy+2);ctx.stroke();
+      }else if(id==='colina'){
+        ctx.fillStyle=i%2?'#f88fb7':'#cf87e2';
+        ctx.beginPath();ctx.ellipse(px+ww*.5,cy+depth,ww*.58,ry*.45,-.45,0,TAU);ctx.fill();
       }else{
         ctx.fillStyle='#e3cb8dbb';ctx.fillRect(px,cy+depth+ry*.4,ww,3);
         ctx.fillStyle='#e7e4fff0';ctx.beginPath();ctx.ellipse(px+ww*.5,cy+depth+ry*.4,ww*.55,ry*.38,0,0,TAU);ctx.fill();
@@ -151,8 +161,8 @@
     }
     ctx.restore();
   }
-  function lighting(ctx,{width,height,floor,x,colors,power=0,beat=0,soft=false,still=false,deluxe=false}){
-    const intensity=soft?.12:.38+power*.57,center=width*.52;
+  function lighting(ctx,{width,height,floor,x,colors,power=0,beat=0,soft=false,still=false,deluxe=false,frenzy=false,symbol}){
+    const intensity=soft?.12:.04+power*.96,center=width*.52;
     ctx.save();
     if(!soft&&!deluxe){
       ctx.strokeStyle='#ded4ff80';ctx.lineWidth=deluxe?5:3;ctx.beginPath();ctx.moveTo(width*.12,height*.065);ctx.lineTo(width*.9,height*.065);ctx.stroke();
@@ -172,15 +182,31 @@
         ctx.restore();
       }
       ctx.save();ctx.translate(sx,sy);ctx.rotate((top?-1:1)*side*.25);ctx.fillStyle='#28233d';ctx.strokeStyle='#f1e8ff';ctx.lineWidth=1.5;
-      ctx.beginPath();ctx.roundRect(-11,-6,22,15,4);ctx.fill();ctx.stroke();ctx.fillStyle=color;ctx.shadowColor=color;ctx.shadowBlur=soft?0:10+power*15;ctx.beginPath();ctx.ellipse(0,top?7:-5,8,4,0,0,TAU);ctx.fill();ctx.restore();
+      ctx.beginPath();ctx.roundRect(-11,-6,22,15,4);ctx.fill();ctx.stroke();ctx.fillStyle=color;ctx.globalAlpha=soft?.35:intensity;ctx.shadowColor=color;ctx.shadowBlur=soft?0:power*27;ctx.beginPath();ctx.ellipse(0,top?7:-5,8,4,0,0,TAU);ctx.fill();ctx.restore();
     }
     if(!soft){
       ctx.strokeStyle=colors[1]+'a0';ctx.lineWidth=1.5;ctx.beginPath();ctx.ellipse(center,floor-4,width*.4,Math.min(23,width*.055),0,0,TAU);ctx.stroke();
-      if(power>.45||deluxe){
+      if(power>.35){
         for(let i=0;i<8;i++){
           const phase=((beat*.08+i/8)%1+1)%1,alpha=Math.sin(phase*Math.PI)*intensity;
           ctx.globalAlpha=alpha;ctx.fillStyle=colors[i%4];const px=center+Math.sin(i*2.3+beat*.12)*width*.42,py=floor-height*(.08+phase*.68);
           ctx.beginPath();ctx.moveTo(px,py-4);ctx.lineTo(px+2,py);ctx.lineTo(px,py+4);ctx.lineTo(px-2,py);ctx.closePath();ctx.fill();
+        }
+      }
+      if(frenzy && symbol?.complete && symbol.naturalWidth){
+        const glow = ctx.createRadialGradient(center,floor*.52,0,center,floor*.52,width*.48);
+        glow.addColorStop(0,colors[0]+'80');
+        glow.addColorStop(1,colors[1]+'00');
+        ctx.fillStyle=glow;
+        ctx.fillRect(0,0,width,floor);
+        for(let i=0;i<12;i++){
+          const phase=(beat/8+i/12)%1;
+          const angle=i*2.399+beat*.21;
+          const size=Math.min(48,width*.12)*(1+.24*Math.sin(phase*TAU));
+          const px=center+Math.cos(angle)*width*.39;
+          const py=floor*(.92-phase*.8);
+          ctx.globalAlpha=Math.sin(phase*Math.PI)*.85;
+          ctx.drawImage(symbol,px-size/2,py-size/2,size,size);
         }
       }
     }
@@ -197,34 +223,55 @@
     ctx.clearRect(0,0,width,height);ctx.drawImage(base,0,0,width,height);
     return{theme:id,center:width*.52,floor,power,...lighting(ctx,o),cachedBase:true};
   }
-  function draw(ctx,image,level,{width,height,beat,progress,amount,mood=2,soft=false}){
+  function draw(ctx,image,level,{width,height,beat,progress,amount,mood=2,soft=false,danceImage}){
     const p=pose(level.id,beat,progress,amount),baseRect=level.frames[0];
-    // A small grounded slide and rock follow the song. The outfit stays solid.
-    p.lean*=.45;p.x*=.62;p.bend=0;p.step=0;p.leftFoot=0;p.rightFoot=0;p.lift=0;
+    // Blend between four steps within the song's meter. All turns pivot at the sole.
+    const meter=level.meter, bar=beat/meter, phrase=Math.floor(bar/2);
+    const slide=Math.sin(bar*TAU);
+    const pulse=(1-Math.cos(beat*TAU))*.5;
+    const steps=[slide, .65*slide+.35*Math.sin(bar*TAU*2), Math.sin(bar*Math.PI), slide*(.55+.45*pulse)];
+    const blendStep=smooth((bar%2-1.6)/.4);
+    const step=steps[phrase%4]*(1-blendStep)+steps[(phrase+1)%4]*blendStep;
+    p.lean=clamp(p.lean*.6 + step*amount*.047,-.13,.13);
+    p.x=clamp(p.x*.62 + step*amount*.045,-.085,.085);
+    p.bend=0;p.step=0;p.leftFoot=0;p.rightFoot=0;p.lift=0;
     const floor=height*.935,center=width*.52+p.x*Math.min(height,width*1.1);
-    const baseScale=Math.min(width*.93/(level.designWidth||440),height*.86/(level.designHeight||552));
+    const baseScale=Math.min(width*.84/(level.designWidth||440),height*.86/(level.designHeight||552))*(1-amount*pulse*.021);
+    const enthusiasm=soft?0:smooth((amount-.35)/.48);
+    const hasDanceImage=!!(danceImage?.complete && danceImage.naturalWidth);
     let frame=0,nextFrame=0,blend=0;
-    if(!soft&&amount>0&&mood>=3&&level.frames.length>1){
-      const sequence=level.id==='brinquedos'?[0,2,1,2,0,3,1,0]:[0,1,2,1,0,3,2,1];
-      const step=beat/2,i=Math.floor(step),fraction=step-i;
-      frame=sequence[i%sequence.length];nextFrame=sequence[(i+1)%sequence.length];blend=smooth((fraction-.83)/.17);
+    if(enthusiasm>0&&level.frames.length>1){
+      const sequence=level.id==='brinquedos'?[0,1,4,5,0,2,7,3,0,5,6,7]:[0,1,4,5,0,2,3,7,0,5,6,7];
+      const frameBeat=beat/2,i=Math.floor(frameBeat),fraction=frameBeat-i;
+      frame=sequence[i%sequence.length];nextFrame=sequence[(i+1)%sequence.length];blend=smooth((fraction-.86)/.14);
+    }else if(enthusiasm>0&&hasDanceImage){
+      const accent=beat%meter;
+      nextFrame=1;
+      blend=smooth((accent-.65)/.27)*smooth((meter-accent-.45)/.29);
     }
     function drawFrame(index,alpha){
-      const rect=level.frames[index],k=baseRect[3]/rect[3],scale=baseScale*k;
-      const ground=(level.contacts?.[index]||[index===0?(level.groundY||rect[3]):rect[3],index===0?(level.contactX||rect[2]*.5):rect[2]*.45]);
+      const alternate=index===1 && hasDanceImage;
+      const rect=alternate?[0,0,danceImage.naturalWidth,danceImage.naturalHeight]:level.frames[index];
+      const ground=alternate?level.dance.contact:(level.contacts?.[index]||[index===0?(level.groundY||rect[3]):rect[3],index===0?(level.contactX||rect[2]*.5):rect[2]*.5]);
+      const scale=Math.min(baseScale*baseRect[3]/rect[3],width*.84/rect[2]);
       const local={...p,groundY:ground[0],contactX:ground[1]};
-      const tex=texture(image,rect,index===0?level.face:null,index===0?mood:2,level.id,level.faceClip,index===0?level.mouth:null,index===0?level.tears:null);
+      const tex=texture(alternate?danceImage:image,rect,index===0?level.face:null,index===0?mood:2,level.id,level.faceClip,index===0?level.mouth:null,index===0?level.tears:null);
       const x=center+(local.contactX-rect[2]*.5)*scale;
       const model=body(ctx,tex,x,floor,scale,local,alpha);return{...model,scale,groundY:local.groundY,contactX:local.contactX,rect,tex,x};
     }
-    const model=drawFrame(frame,1-blend);if(blend>.001)drawFrame(nextFrame,blend);
+    const primaryWeight=(1-blend)*enthusiasm;
+    const alternateWeight=nextFrame===0?0:blend*enthusiasm;
+    const baseWeight=1-(frame===0?0:primaryWeight)-alternateWeight;
+    const model=drawFrame(0,baseWeight);
+    if(frame!==0&&primaryWeight>.001)drawFrame(frame,primaryWeight);
+    if(alternateWeight>.001)drawFrame(nextFrame,alternateWeight);
     if(mood===0&&!soft&&level.tears){
       ctx.save();ctx.fillStyle='#bdf6ff';for(const [i,[tx,ty,dx,dy]]of level.tears.entries()){
         const t=((beat*.22+i*.43)%1+1)%1,q=projectRigid(tx+dx*t,ty+dy*t,model.groundY,model.contactX,model.x,floor,model.scale,p.lean);
         ctx.beginPath();ctx.ellipse(q.x,q.y,Math.max(.8,level.mouth[2]*model.scale*.065),Math.max(1.2,level.mouth[3]*model.scale*.23),p.lean-.12,0,TAU);ctx.fill();
       }ctx.restore();
     }
-    return{x:center,floor,height:baseRect[3]*baseScale,lean:p.lean,backend:'rigid-illustration',bodyDrawCalls:blend>.001?2:1,groundContact:{x:model.x,y:floor},phrase:p.phrase,pose:p,scale:baseScale,frame,nextFrame,blend,connected:true,rigid:true,mood:moods[mood].name};
+    return{x:center,floor,height:baseRect[3]*baseScale,lean:p.lean,backend:'rigid-illustration',bodyDrawCalls:1+Number(frame!==0&&primaryWeight>.001)+Number(alternateWeight>.001),groundContact:{x:model.x,y:floor},phrase:p.phrase,pose:p,scale:baseScale,frame,nextFrame,blend:alternateWeight,connected:true,rigid:true,mood:moods[mood].name};
   }
   window.RR_PERFORMANCE=Object.freeze({definitions,pose,moods,draw,platform,texture,lighting,projectRigid});
 })();

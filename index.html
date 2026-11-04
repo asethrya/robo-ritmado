@@ -4,29 +4,30 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#150f2e">
-  <meta name="description" content="Robô Ritmado: ajude Pixel a viajar por oito mundos temáticos em uma aventura musical.">
+  <meta name="description" content="Robô Ritmado: ajude Pixel a viajar por dez mundos temáticos em uma aventura musical.">
   <title>Robô Ritmado • A aventura de Pixel</title>
-  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg?v=0.11">
-  <link rel="stylesheet" href="stage.css?v=0.11">
-  <link rel="stylesheet" href="worlds.css?v=0.11">
-  <link rel="stylesheet" href="front.css?v=0.11">
-  <link rel="stylesheet" href="playful.css?v=0.11">
-  <script src="settings.js?v=0.11" defer></script>
-  <script src="interface-audio.js?v=0.11" defer></script>
-  <script src="sprite-assets.js?v=0.11" defer></script>
-  <link rel="stylesheet" href="wonder.css?v=0.11">
-  <link rel="stylesheet" href="performance.css?v=0.11">
-  <link rel="stylesheet" href="encore.css?v=0.11">
-  <link rel="stylesheet" href="adventure.css?v=0.11">
-  <link rel="stylesheet" href="journey.css?v=0.11">
-  <script src="performance.js?v=0.11" defer></script>
-  <script src="campaign.js?v=0.11" defer></script>
-  <script src="levels.js?v=0.11" defer></script>
-  <script src="portal.js?v=0.11" defer></script>
-  <script src="travel.js?v=0.11" defer></script>
-  <script src="game.js?v=0.11" defer></script>
-  <script src="cinematic.js?v=0.11" defer></script>
-  <script src="front.js?v=0.11" defer></script>
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg?v=0.12">
+  <link rel="stylesheet" href="stage.css?v=0.12">
+  <link rel="stylesheet" href="worlds.css?v=0.12">
+  <link rel="stylesheet" href="front.css?v=0.12">
+  <link rel="stylesheet" href="playful.css?v=0.12">
+  <script src="settings.js?v=0.12" defer></script>
+  <script src="interface-audio.js?v=0.12" defer></script>
+  <script src="sprite-assets.js?v=0.12" defer></script>
+  <link rel="stylesheet" href="wonder.css?v=0.12">
+  <link rel="stylesheet" href="performance.css?v=0.12">
+  <link rel="stylesheet" href="encore.css?v=0.12">
+  <link rel="stylesheet" href="adventure.css?v=0.12">
+  <link rel="stylesheet" href="journey.css?v=0.12">
+  <link rel="stylesheet" href="encounter.css?v=0.12">
+  <script src="performance.js?v=0.12" defer></script>
+  <script src="campaign.js?v=0.12" defer></script>
+  <script src="levels.js?v=0.12" defer></script>
+  <script src="portal.js?v=0.12" defer></script>
+  <script src="travel.js?v=0.12" defer></script>
+  <script src="game.js?v=0.12" defer></script>
+  <script src="cinematic.js?v=0.12" defer></script>
+  <script src="front.js?v=0.12" defer></script>
 </head>
 <body data-theme="doces" data-screen="menu" class="warning-pending">
   <div class="world" aria-hidden="true"></div>
@@ -54,7 +55,8 @@
           <div class="track-shell" id="trackShell">
             <div id="trackBackdrop" class="track-backdrop" aria-hidden="true"></div>
             <div class="track-crown" aria-hidden="true"><span>♡</span><b>♪</b><span>♡</span></div><div class="track-meta"><span><i></i> <span id="trackName">PISTA DE CRISTAL</span></span><span id="tempoLabel">90 BPM · FÁCIL</span></div>
-            <canvas id="track" aria-label="Quatro pistas com setas que descem até a linha de acerto"></canvas>
+            <div id="frenzyAlert" class="frenzy-alert" role="status" hidden><img id="frenzyIcon" alt=""><span id="frenzyLabel"></span></div>
+              <canvas id="track" aria-label="Quatro pistas com setas que descem até a linha de acerto"></canvas>
             <div class="track-instruction">Aperte quando as setas se encontrarem</div>
             <div id="judgment" class="judgment" aria-hidden="true"></div>
             <div id="countdown" class="countdown" aria-hidden="true"></div>
@@ -84,7 +86,7 @@
       </section>
       <div class="touch-controls" aria-label="Setas para jogar com toque"><button data-lane="0" aria-label="Esquerda">←</button><button data-lane="1" aria-label="Baixo">↓</button><button data-lane="2" aria-label="Cima">↑</button><button data-lane="3" aria-label="Direita">→</button></div>
     </main>
-    <footer><span>♪ OUÇA. BRINQUE. BRILHE.</span><span>VERSÃO 0.11 <b>•</b> OITO MUNDOS</span></footer>
+    <footer><span>♪ OUÇA. BRINQUE. BRILHE.</span><span>VERSÃO 0.12 <b>•</b> DEZ MUNDOS</span></footer>
   </div>
   <dialog id="travelOverlay" class="travel-overlay" aria-label="Viagem entre mundos"><canvas id="travelCanvas" aria-label="Pixel abre o portal com a guitarra e viaja com coragem"></canvas><div class="travel-controls"><button id="pauseTravel" class="quiet-button">Pausar cena</button><button id="skipTravel" class="quiet-button">Chegar ao destino →</button></div><div class="travel-caption"><span class="pill">O RITMO ABRE CAMINHOS</span><h2 id="travelDestination"></h2><p id="travelStatus" role="status" aria-live="polite"></p><small id="travelSummary"></small></div><button id="retryTravel" class="primary-button" hidden>Tentar abrir o portal novamente</button></dialog>
 <dialog id="phaseDialog" class="game-dialog phase-dialog" aria-labelledby="levelTitle"><div id="intro" class="overlay intro">
@@ -93,6 +95,7 @@
               <p id="introCopy">Pixel se perdeu entre os mundos.<br>Toque na batida e carregue o portal!</p>
               <div class="tutorial-keys" aria-label="Use as quatro setas do teclado"><kbd>←</kbd><kbd>↓</kbd><kbd>↑</kbd><kbd>→</kbd></div>
               <p class="tutorial-copy">Espere a seta cair até o alvo.<br>Então aperte a mesma seta no teclado.</p>
+              <p class="tutorial-copy">Cinco “No ritmo!” seguidos ativam o Frenesi. Os próximos acertos perfeitos valem 200 pontos até a sequência acabar.</p>
               <button id="start" class="primary-button">Entrar no ritmo <span>▶</span></button>
               <div class="notice-actions"><button id="phaseAccessibility" class="text-button">◎ Acessibilidade</button><button class="text-button" data-return-menu>Voltar ao menu</button></div><span id="introDetail" class="intro-detail">43 segundos de música · Meta: 2.600 pontos</span>
               <p id="audioError" class="error" role="alert" hidden></p>
@@ -100,14 +103,15 @@
             </div></dialog>
 <dialog id="pauseDialog" class="game-dialog " aria-labelledby="pauseHeading"><div id="pauseOverlay" class="overlay" hidden><span class="pill">Ⅱ UMA PAUSA NA BATIDA</span><h2 id="pauseHeading">Pixel está<br>te esperando.</h2><p>As notas e a música estão pausadas.</p><button id="resume" class="primary-button">Continuar <span>▶</span></button><button id="restartPause" class="text-button">Recomeçar a música</button><button class="text-button" data-return-menu>Voltar ao menu</button></div></dialog>
 <dialog id="resultDialog" class="game-dialog " aria-labelledby="resultTitle"><div id="results" class="overlay result-overlay" hidden>
+              <canvas id="retryPixel" class="retry-portrait" width="600" height="650" role="img" aria-label="Pixel com o traje desta fase" hidden></canvas>
               <span id="resultPill" class="pill">✦ VIAGEM CONCLUÍDA</span><div class="result-stars" id="stars" aria-label="Resultado em estrelas">✦ ✦ ✦</div>
-              <div id="retryCoach" class="retry-coach" hidden><canvas id="retryPixel" width="100" height="150" aria-hidden="true"></canvas><p>Eu confio em você!<br>Cada tentativa ajuda a aprender.<br>Vamos tentar juntos mais uma vez?</p></div>
+              <div id="retryCoach" class="retry-coach" hidden><p>Eu confio em você!<br>Cada tentativa ajuda a aprender.<br>Vamos tentar juntos mais uma vez?</p></div>
               <h2 id="resultTitle">Você fez música!</h2><p id="resultMessage"></p>
               <strong id="resultScore" class="result-score">0 <small>pontos</small></strong>
               <div class="result-grid"><div><b id="resultPerfect">0</b><span>No ritmo!</span></div><div><b id="resultGood">0</b><span>Muito bem!</span></div><div><b id="resultNear">0</b><span>Quase!</span></div><div><b id="resultMiss">0</b><span>Próxima!</span></div></div>
               <div class="result-detail" id="resultDetail"></div>
               <button id="nextStage" class="primary-button portal-button" hidden>Entrar em Brinquedolândia <span>✦</span></button>
-              <button id="lastPortal" class="primary-button" hidden>Seguir o sinal <span>✦</span></button><button id="playAgain" class="primary-button">Tocar de novo <span>↻</span></button>
+              <p id="lockedJourney" class="locked-journey" hidden><strong>🔒 Fase 11 em desenvolvimento</strong><br>Esta parte da jornada ainda está bloqueada. Você já pode revisitar os dez mundos!</p><button id="playAgain" class="primary-button">Tocar de novo <span>↻</span></button>
               <button class="text-button" data-return-menu>Voltar ao menu</button><span id="resultHint" class="intro-detail">Complete a música para seguir viagem.</span>
             </div></dialog>
   <div id="announcer" class="sr-only" role="status" aria-live="polite"></div>

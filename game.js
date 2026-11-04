@@ -41,8 +41,8 @@
     // Closing note's acceptance deadline coincides with the music end, even
     // with timing calibration. There is no four-beat empty ending anymore.
     CHART.push({beat:SONG_BEATS-.24/(runRate*BEAT),lane:level.sequence[CHART.length%level.sequence.length],time:DURATION-.24/runRate-offset/1000,closing:true});
-    MAX_POINTS = CHART.length * 100; GOAL = level.goal;
-    if(GOAL>MAX_POINTS)throw new Error("A meta precisa caber na música.");
+    MAX_POINTS = CHART.length * 100 + Math.max(0, CHART.length - 5) * 100; GOAL = level.goal;
+    if(GOAL>CHART.length * 100)throw new Error("A meta precisa caber na música.");
   }
   configureLevel(0);
   const KEYS = ['ArrowLeft', 'ArrowDown', 'ArrowUp', 'ArrowRight'];
@@ -54,14 +54,24 @@
   const dancer = $('pixelSprite'), danceCtx = dancer.getContext('2d');
   const imageAsset = url => RR_SPRITES.load(url);
   const assets=LEVELS.map(()=>null);
-  function levelAssets(i){return assets[i]||(assets[i]={sprite:imageAsset(LEVELS[i].sprite),background:imageAsset(LEVELS[i].background)});}
+  function levelAssets(index) {
+    if (assets[index]) return assets[index];
+    const world = LEVELS[index];
+    return assets[index] = {
+      sprite: imageAsset(world.sprite),
+      background: imageAsset(world.background),
+      symbol: imageAsset(world.symbol),
+      dance: world.dance ? imageAsset(world.dance.sprite) : null
+    };
+  }
   levelAssets(0);
   let sprite = assets[0].sprite.image;
   let frameDirty=true,dancerDirty=true,stageHeight=1,stageDpr=1,lastPortraitMood=-1,lastPortraitSprite=null;
+  let perfectStreak = 0, frenzy = false, groove = .28;
   let danceModel = null, stageModel = null, moodValue = 2, recentResults = [], danceClock=0;
   const stageCanvas=$('pixelStage'), stageCtx=stageCanvas.getContext('2d');
   const portrait=$('pixelPortrait'), portraitCtx=portrait.getContext('2d');
-  function resetPerformance(){lastPortraitMood=-1;dancerDirty=true;frameDirty=true;danceClock=0;moodValue=2;recentResults=[];danceModel=null;stageModel=null;}
+  function resetPerformance(){perfectStreak=0;groove=.28;setFrenzy(false);lastPortraitMood=-1;dancerDirty=true;frameDirty=true;danceClock=0;moodValue=2;recentResults=[];danceModel=null;stageModel=null;}
   let dancerWidth = 600, dancerHeight = 500, spriteReady = false;
   let danceTime = 0, danceFrame = 0, danceLevel = 0, reaction = 0, reactionKind = 'perfect', reactionLane = 0;
   const danceSparks = [];
@@ -91,7 +101,7 @@
   function save(key, value) { try { localStorage.setItem(key, value); } catch {} }
   const formatTime = t => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
   const worldButtons = RR_CAMPAIGN.map((stage,i)=>{
-    const button=document.createElement('button');button.id=['worldCandy','worldToys','worldIce','worldSky','worldDesert','worldSwamp','worldMist','worldOcean'][i]||'worldFuture'+i;button.className='world-chip';
+    const button=document.createElement('button');button.id=['worldCandy','worldToys','worldIce','worldSky','worldDesert','worldSwamp','worldMist','worldOcean','worldLava','worldScarlet'][i]||'worldFuture'+i;button.className='world-chip';
     button.innerHTML=String(i+1).padStart(2,'0')+' <span>'+stage.name+'</span><small></small>';button.disabled=true;$('journeyNav').append(button);return button.id;
   });
   const phaseButtons=worldButtons.map((id,i)=>{const b=$(id).cloneNode(true);b.id='revisit-'+id;b.addEventListener('click',()=>{document.querySelector('.phase-worlds').open=false;selectWorld(i);});$('phaseJourneyNav').append(b);return b;});
@@ -100,7 +110,7 @@
       const button=$(id),future=i>=LEVELS.length,locked=future||i>unlockedThrough;
       button.disabled=settingsLocked()||locked;
       button.setAttribute('aria-current',levelIndex===i?'step':'false');
-      button.title=future?'Em breve · Meta planejada: '+RR_CAMPAIGN[i].goal+' pontos':locked?'Conclua o mundo anterior e carregue o portal.':'Ensaiar em '+LEVELS[i].name+' (novo placar)';
+      button.title=future?'Bloqueada · Em desenvolvimento':locked?'Conclua o mundo anterior e carregue o portal.':'Ensaiar em '+LEVELS[i].name+' (novo placar)';
       button.dataset.future=String(future);
       const lock=button.querySelector('small');if(lock)lock.textContent=future?'Em breve':locked?'🔒':'✦';
       const copy=phaseButtons[i];copy.disabled=button.disabled;copy.title=button.title;copy.dataset.future=button.dataset.future;copy.setAttribute('aria-current',button.getAttribute('aria-current'));copy.querySelector('small').textContent=lock.textContent;
@@ -112,13 +122,14 @@
     document.documentElement.style.setProperty('--pink', level.accent);
     document.querySelector('.world').style.backgroundImage = `url('${level.background}')`;
     $('trackBackdrop').style.backgroundImage=`url('${level.background}')`;
-    $('chapterLabel').textContent = `FASE 0${levelIndex + 1} · ${levelIndex ? 'O SHOW CONTINUA' : 'PRIMEIRA PARADA'}`;
+    $('chapterLabel').textContent = `FASE  · ${levelIndex ? 'O SHOW CONTINUA' : 'PRIMEIRA PARADA'}`;
     $('levelTitle').textContent = level.title; $('levelEm').textContent = level.emphasis;
     $('levelSubtitle').textContent = level.subtitle;
     $('trackName').textContent = level.track;
     document.querySelectorAll('.track-crown span').forEach(el=>el.textContent=level.ornament);
     $('albumCover').src=level.album;$('albumCover').alt='Capa de '+level.song;$('phaseAlbum').src=level.album;
-    $('phaseFlurries').innerHTML=Array.from({length:10},(_,i)=>'<i style="--i:'+i+'">'+level.ornament+'</i>').join('');
+    $('phaseFlurries').innerHTML=Array.from({length:10},(_,i)=>'<img alt="" src="'+level.symbol+'" style="--i:'+i+'">').join('');
+    $('frenzyIcon').src=level.symbol;
     $('danceStyle').textContent=RR_PERFORMANCE.definitions[level.id].style;
     $('dancePhrase').textContent=RR_PERFORMANCE.definitions[level.id].name;
     $('tempoLabel').textContent = `${Math.round(BPM * runRate)} BPM · ${runRate < 1 ? Math.round(runRate * 100) + '% DO RITMO' : levelIndex ? 'NOVO RITMO' : 'FÁCIL'}`;
@@ -127,7 +138,7 @@
     $('songFill').style.width = '0%';
     document.querySelector('.song-progress').setAttribute('aria-valuenow', '0');
     const greetings={doces:'O caminho de casa<br>começa no <em>ritmo.</em>',brinquedos:'Todo mundo no<br><em>desfile de estrelas!</em>',gelo:'Pés leves na neve.<br>Vamos <em>valsar?</em>',nebulosa:'Uma melodia brilha<br><em>entre os vaga-lumes!</em>',atlanta:'Vamos seguir<br><em>o compasso das marés!</em>',ceu:'Lá no alto, a música<br><em>abraça as nuvens!</em>',deserto:'Nosso ritmo faz<br><em>as dunas dançarem!</em>',pantano:'Raízes e gotas no<br><em>balanço da floresta!</em>'};
-    $('introTitle').innerHTML = greetings[level.id].replace(/<br>/g,' ');
+    $('introTitle').innerHTML = (greetings[level.id] || level.subtitle).replace(/<br>/g,' ');
     $('introCopy').innerHTML = levelIndex ? `O traje mudou. A música também!<br>${bankedScore ? bankedScore.toLocaleString('pt-BR') + ' pontos vieram com você.' : 'Vamos tocar em '+level.name+'?'}` : 'Pixel se perdeu entre os mundos.<br>Toque na batida e carregue o portal!';
     $('introDetail').textContent = `${Math.ceil(DURATION)} segundos de música · Meta: ${GOAL.toLocaleString('pt-BR')} pontos`;
     $('pixelArt').setAttribute('aria-label', `Pixel dançando com a guitarra e o traje de ${level.name}`);
@@ -166,7 +177,7 @@
     modal('intro',true); modal('results',false); modal('pauseOverlay',false);
     $('countdown').innerHTML = ''; $('judgment').classList.remove('show');
     $('pause').disabled = true; $('offset').disabled = false; $('spriteStatus').hidden = true;
-    state = 'ready'; updateLevelUI();speak(welcomes[level.id]);
+    state = 'ready'; updateLevelUI();speak(welcomes[level.id] || 'Vamos descobrir a batida deste mundo juntos!');
     // Wait for visible layout before committing the decoded costume to the canvas.
     await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
     if (token !== generation) return;
@@ -180,19 +191,21 @@
   let traveling=false;
   const traveler=RR_TRAVEL.create($('travelCanvas'));
   async function travel(){
-    if(traveling||state!=='results'||score<GOAL)return;
-    const next=levelIndex+1,ending=next>=LEVELS.length,carry=bankedScore+score,from={level,sprite,background:assets[levelIndex].background.image};
+    if(traveling||state!=='results'||score<GOAL||levelIndex+1>=LEVELS.length)return;
+    const next=levelIndex+1,carry=bankedScore+score,from={level,sprite,background:assets[levelIndex].background.image};
     traveling=true;state='transition';modal('results',false);updateWorldButtons();$('retryTravel').hidden=true;
     $('travelSummary').textContent=carry.toLocaleString('pt-BR')+' pontos seguem com você.';
-    $('travelDestination').textContent=ending?'Um novo sinal nos chama…':LEVELS[next].name;
+    $('travelDestination').textContent=LEVELS[next].name;
     $('travelOverlay').showModal();
     try{
-      let to=null;if(!ending){levelAssets(next);await Promise.all([assets[next].sprite.ready,assets[next].background.ready]);to={level:LEVELS[next],sprite:assets[next].sprite.image,background:assets[next].background.image};}
+      levelAssets(next);
+      await Promise.all([assets[next].sprite.ready,assets[next].background.ready]);
+      const to={level:LEVELS[next],sprite:assets[next].sprite.image,background:assets[next].background.image};
       await RR_AUDIO.unlock();RR_AUDIO.story(1);
       await traveler.play(from,to);
       RR_AUDIO.silence();$('travelOverlay').close();
-      if(ending){state='results';modal('results',true);$('resultMessage').textContent='O sinal da Masmorra Ardente chegou! Os dois últimos mundos estão em preparação. Seu caminho ficou salvo.';updateWorldButtons();}
-      else{await showLevel(next,carry);$('announcer').textContent='Pixel chegou com coragem a '+level.name+'. O novo outfit está pronto. Confira a fase e entre no ritmo.';}
+      await showLevel(next,carry);
+      $('announcer').textContent='Pixel chegou com coragem a '+level.name+'. O novo outfit está pronto. Confira a fase e entre no ritmo.';
     }catch(error){state='results';$('travelOverlay').close();modal('results',true);$('resultMessage').textContent='O portal precisa de mais um instante. '+error.message;updateWorldButtons();}
     finally{traveling=false;}
   }
@@ -246,16 +259,18 @@
     const beat=still?0:danceTime/BEAT,progress=Math.max(0,Math.min(1,danceTime/DURATION));
     const judged=Object.values(stats).reduce((a,b)=>a+b,0);
     const recent=recentResults.length?recentResults.reduce((a,b)=>a+b,0)/recentResults.length: .7;
-    const accuracy=judged?score/(judged*100):.7;
-    const quality=recent*.75+accuracy*.25;
+    const accuracy=judged?basePoints()/ (judged*100):.7;
+    const quality=recent*.85+accuracy*.15;
+    const danceTarget = frenzy ? 1 : judged ? Math.max(.10, quality * .85) : .22;
+    if(!paused) groove += Math.sign(danceTarget-groove)*Math.min(Math.abs(danceTarget-groove),dt*.85);
     const target=judged<3?2:quality<.32?0:quality<.55?1:quality<.76?2:quality<.91||combo<8||score<GOAL*.25?3:4;
     if(!paused)moodValue+=(target-moodValue)*(1-Math.exp(-dt*2.2));
     const mood=Math.max(0,Math.min(4,Math.round(moodValue)));
     danceFrame=0;danceLevel=Math.min(3,Math.floor(progress*4));
-    danceModel=RR_PERFORMANCE.draw(danceCtx,sprite,level,{width:dancerWidth,height:dancerHeight,beat,progress,amount:still?0:(soft?.55:1)*(.78+quality*.65),mood,soft});
+    danceModel=RR_PERFORMANCE.draw(danceCtx,sprite,level,{width:dancerWidth,height:dancerHeight,beat,progress,amount:still?0:(soft?.5:1)*groove*1.65,mood,soft,danceImage:assets[levelIndex].dance?.image});
     danceFrame=danceModel.frame;
-    const power=Math.min(1,Math.max(0,score/GOAL)*.55+quality*.25+Math.min(1,combo/12)*.2);
-    stageModel=RR_PERFORMANCE.platform(stageCtx,{width:dancerWidth,height:stageHeight,floor:danceModel.floor,x:danceModel.x,id:level.id,colors:COLORS,accent:level.accent,power,beat,soft,still});
+    const power=groove;
+    stageModel=RR_PERFORMANCE.platform(stageCtx,{width:dancerWidth,height:stageHeight,floor:danceModel.floor,x:danceModel.x,id:level.id,colors:COLORS,accent:level.accent,power,beat,soft,still,deluxe:true,frenzy,symbol:assets[levelIndex].symbol.image});
     if($('dancePhrase').textContent!==danceModel.phrase)$('dancePhrase').textContent=danceModel.phrase;
     const emotion=RR_PERFORMANCE.moods[mood];
     if($('pixelMood').textContent!==emotion.name){
@@ -336,6 +351,17 @@
               tone(root,when,.7,.08,'sine');tone(m+12,when,.6,.07,'sine');tone(m+19,when,.22,.02,'triangle');if(within===0)kick(when);if(within===2)percussion(when);
             }else if(kind==='ocean'){
               tone(root,when,.65,.10,'sine');tone(m,when,.52,.075,'triangle');tone(m+12,when,.25,.025,'sine');if(within===0||within===2)tone(root+24,when,.06,.04,'sine');if(within===1||within===3)percussion(when);
+            }else if(kind==='lava'){
+              kick(when);
+              tone(root,when,.32,.11,'triangle');
+              tone(m,when,.23,.065,'sawtooth');
+              tone(m+7,when,.22,.027,'triangle');
+              if(within%2)percussion(when,true);
+            }else if(kind==='petal'){
+              tone(root,when,.62,.10,'triangle');
+              tone(m,when,.48,.072,'triangle');
+              tone(m+12,when,.32,.032,'sine');
+              if(within%2)percussion(when);else kick(when);
             }else if(kind==='desert'){
               tone(root,when,.27,.12,'triangle');tone(m,when,.22,.10,'triangle');tone(m+12,when,.11,.022,'sine');
               if(within===0||within===2)kick(when);else {tone(root+24,when,.06,.035,'sine');percussion(when);}
@@ -421,7 +447,7 @@
       state = 'countdown'; epoch = audio.currentTime + .15 + 4 * BEAT;
       updateWorldButtons();
       step = -8; lastCount = null;
-      updateScore();speak(welcomes[level.id]);$('pixelMessage').textContent = 'Prepare as setas. Vamos nessa!';
+      updateScore();speak(welcomes[level.id] || 'Vamos descobrir a batida deste mundo juntos!');$('pixelMessage').textContent = 'Prepare as setas. Vamos nessa!';
       $('announcer').textContent = 'Prepare-se. A música vai começar.';
       scheduleMusic(); scheduler = setInterval(scheduleMusic, 25);
     } catch (error) {
@@ -466,9 +492,24 @@
     if (kind !== 'miss') rings.push({ x, y, age: 0, color: COLORS[lane], life: .6, perfect: kind === 'perfect' });
     if (particles.length > 240) particles.splice(0, particles.length - 240);
   }
+  function basePoints() {
+    return stats.perfect * 100 + stats.good * 60 + stats.near * 20;
+  }
+  function setFrenzy(active) {
+    frenzy = active;
+    $('frenzyAlert').hidden = !active;
+    $('frenzyLabel').textContent = active ? 'Frenesi! No ritmo vale 200 pontos' : '';
+    document.body.classList.toggle('frenzy-active', active);
+  }
   function judge(note, kind) {
     if (note.result) return;
-    note.result = kind; stats[kind]++; score += POINTS[kind];
+    const points = POINTS[kind] * (frenzy && kind === 'perfect' ? 2 : 1);
+    note.result = kind;
+    stats[kind]++;
+    score += points;
+    perfectStreak = kind === 'perfect' ? perfectStreak + 1 : 0;
+    const wasFrenzy = frenzy;
+    if (frenzy !== (perfectStreak >= 5)) setFrenzy(perfectStreak >= 5);
     recentResults.push(POINTS[kind]/100);if(recentResults.length>10)recentResults.shift();
     combo = kind === 'perfect' || kind === 'good' ? combo + 1 : 0;
     maxCombo = Math.max(maxCombo, combo);
@@ -483,11 +524,11 @@
     updateScore();talkForResult(kind);spawn(note.lane, kind);
     RR_AUDIO.hit(note.lane, kind);
     const description = { perfect: 'Acerto no ritmo!', good: 'Acerto parcial. Muito bem!', near: 'Quase acerto!', miss: 'Erro. A próxima é nossa!' };
-    caption(`${description[kind]} ${DIRECTIONS[note.lane]}. +${POINTS[kind]} pontos. Total: ${bankedScore + score}.`, 1.25);
+    caption(`${description[kind]} ${DIRECTIONS[note.lane]}. +${points} pontos. Total: ${bankedScore + score}.${frenzy&&!wasFrenzy?' Frenesi ativado!':wasFrenzy&&!frenzy?' Frenesi encerrado.':''}`, 1.25);
     flashes[note.lane] = preferences().sensitivity ? 0 : kind === 'miss' ? .08 : .35;
     const label = $('judgment');
     label.style.color = JCOLORS[kind];
-    label.innerHTML = `${LABELS[kind]}<small>${POINTS[kind] ? '+' + POINTS[kind] + ' PONTOS' : 'CONTINUE TOCANDO'}</small>`;
+    label.innerHTML = `${LABELS[kind]}<small>${points ? '+' + points + ' PONTOS' : 'CONTINUE TOCANDO'}</small>`;
     label.classList.remove('show'); void label.offsetWidth; label.classList.add('show');
     judgmentUntil = performance.now() + 650;
     const now = performance.now();
@@ -515,41 +556,50 @@
   }
   function finish() {
     if (state === 'results') return;
-    state = 'results'; clearInterval(scheduler); stopVoices();
+    state = 'results'; setFrenzy(false); clearInterval(scheduler); stopVoices();
     $('countdown').innerHTML = ''; $('pause').disabled = true; $('offset').disabled = false;
     $('songFill').style.width = '100%';
     document.querySelector('.song-progress').setAttribute('aria-valuenow', '100');
     $('time').textContent = `${formatTime(Math.ceil(DURATION))} / ${formatTime(Math.ceil(DURATION))}`;
     modal('results',true);
-    $('retryCoach').hidden=score>=GOAL;
-    if(score<GOAL){
-      const c=$('retryPixel'),cx=c.getContext('2d'),r=FRAMES[0],k=Math.min(92/r[2],144/r[3]);cx.clearRect(0,0,c.width,c.height);cx.drawImage(sprite,...r,(100-r[2]*k)/2,150-r[3]*k,r[2]*k,r[3]*k);
+    const retry = score < GOAL;
+    $('retryCoach').hidden = !retry;
+    $('retryPixel').hidden = !retry;
+    $('resultDialog').classList.toggle('retry-dialog', retry);
+    if (retry) {
+      const portrait = $('retryPixel');
+      const context = portrait.getContext('2d');
+      const [x,y,width,height] = FRAMES[0];
+      const cropHeight = Math.round(height * .55);
+      portrait.width = width;
+      portrait.height = cropHeight;
+      context.drawImage(sprite,x,y,width,cropHeight,0,0,width,cropHeight);
     }
     $('playAgain').innerHTML=score>=GOAL?'Tocar de novo <span>↻</span>':'Tentar de novo com Pixel <span>↻</span>';
 
     $('resultScore').innerHTML = `${score.toLocaleString('pt-BR')} <small>pontos</small>`;
     $('resultPerfect').textContent = stats.perfect; $('resultGood').textContent = stats.good;
     $('resultNear').textContent = stats.near; $('resultMiss').textContent = stats.miss;
-    const accuracy = Math.round(score / MAX_POINTS * 100);
+    const accuracy = Math.round(basePoints() / (CHART.length * 100) * 100);
     const stars = accuracy >= 85 ? 3 : accuracy >= 55 ? 2 : accuracy > 0 ? 1 : 0;
     $('stars').textContent = '✦'.repeat(stars) + '✧'.repeat(3 - stars);
     $('stars').setAttribute('aria-label', `${stars} de 3 estrelas`);
     const charged = score >= GOAL;
     speak(charged?'Conseguimos! Eu sabia que você podia!':'Seu esforço vale muito. Vamos tentar outra vez?',charged?'celebrate':'encourage');
     const hasNext=levelIndex<LEVELS.length-1;
-    if(charged)$('energyHint').textContent=hasNext?'Portal aberto para '+LEVELS[levelIndex+1].name+'!':'Oito mundos no nosso ritmo!';
+    if(charged)$('energyHint').textContent=hasNext?'Portal aberto para '+LEVELS[levelIndex+1].name+'!':'Dez mundos no nosso ritmo!';
     if(charged&&hasNext){unlockedThrough=Math.max(unlockedThrough,levelIndex+1);toysUnlocked=true;save('rr-worlds-v07',unlockedThrough);save('robo-ritmado-toys-unlocked','true');}
     $('resultPill').textContent=charged?'✦ FASE '+(levelIndex+1)+' CONCLUÍDA':'♡ MAIS UMA TENTATIVA JUNTOS';
     $('resultTitle').textContent = charged ? (levelIndex ? 'Que grande show!' : 'O portal despertou!') : score ? 'Você fez música!' : 'Vamos tentar juntos?';
-    $('resultMessage').textContent = charged ? (hasNext?LEVELS[levelIndex+1].name+' espera por você!':'Você concluiu os oito mundos disponíveis! Vamos descobrir o próximo sinal?') : `Você fez ${score.toLocaleString('pt-BR')} de ${GOAL.toLocaleString('pt-BR')} pontos. A próxima fase espera: vamos praticar?`;
+    $('resultMessage').textContent = charged ? (hasNext?LEVELS[levelIndex+1].name+' espera por você!':'Você concluiu a fase 10 e fechou esta parte da aventura!') : `Você fez ${score.toLocaleString('pt-BR')} de ${GOAL.toLocaleString('pt-BR')} pontos. A próxima fase espera: vamos praticar?`;
     $('resultDetail').textContent = `Combo: ${maxCombo} · Precisão: ${accuracy}% · Total: ${(bankedScore + score).toLocaleString('pt-BR')}`;
-    $('nextStage').hidden = !(charged && hasNext);$('lastPortal').hidden=!(charged&&!hasNext);
+    $('nextStage').hidden = !(charged && hasNext);$('lockedJourney').hidden=!(charged&&!hasNext);
     if(hasNext)$('nextStage').innerHTML='Viajar para '+LEVELS[levelIndex+1].name+' <span>✦</span>';
     $('playAgain').classList.toggle('replay-secondary', charged && hasNext);
     $('resultHint').textContent = bankedScore ? `Você trouxe ${bankedScore.toLocaleString('pt-BR')} pontos dos mundos anteriores.` : charged ? 'Seus pontos seguem com você pelo portal.' : `Faltaram ${Math.max(0, GOAL - score).toLocaleString('pt-BR')} pontos para abrir o portal.`;
     $('pixelMessage').textContent = charged ? 'Conseguimos! Olha o nosso portal!' : 'Adorei tocar com você. Mais uma?';
     if (bankedScore + score > best) { best = bankedScore + score; save('robo-ritmado-best-v04', best); $('best').textContent = String(best).padStart(5, '0'); }
-    $('announcer').textContent = `${charged?'Fase concluída!':'Vamos tentar de novo!'} ${score} pontos de ${GOAL} necessários. Maior combo: ${maxCombo}.`;
+    $('announcer').textContent = `${charged?'Fase concluída!':'Vamos tentar de novo!'} ${score} pontos de ${GOAL} necessários. Maior combo: ${maxCombo}.${charged&&!hasNext?' Fase 11 bloqueada, em desenvolvimento.':''}`;
     updateWorldButtons();
     (charged && hasNext ? $('nextStage') : $('playAgain')).focus({ preventScroll: true });
   }
@@ -751,7 +801,7 @@
     }
   }
   $('start').addEventListener('click', start);
-  $('nextStage').addEventListener('click', travel);$('lastPortal').addEventListener('click',travel);
+  $('nextStage').addEventListener('click', travel);
   $('retryTravel').addEventListener('click', () => {
     travel();
   });
@@ -807,7 +857,7 @@
       bankedScore, totalScore: bankedScore + score, unlocked: toysUnlocked, unlockedThrough,
       effects: { trackParticles: particles.length, rings: rings.length, dancerParticles: danceSparks.length, reduced: soft },
       time: audio ? clock() : null, chartTime: audio ? chartTime() : null,
-      score, combo, maxCombo, stats: { ...stats }, totalNotes: CHART.length, maxPoints: MAX_POINTS,
+      score, combo, maxCombo, frenzy, perfectStreak, groove, stats: { ...stats }, totalNotes: CHART.length, maxPoints: MAX_POINTS,
       goal: GOAL, offset, audioState: audio?.state || 'not-started',
       dancer: { ready: spriteReady, frame: danceFrame, level: danceLevel, time: danceTime,
         reaction: reactionKind, reactionRemaining: reaction, width: dancerWidth, height: dancerHeight,

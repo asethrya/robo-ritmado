@@ -14,9 +14,9 @@
     <section id="sceneShell" class="scene-shell" aria-label="Menu principal de Robô Ritmado em OrbitHop">
       <div class="orbit-bg" aria-hidden="true"></div><div class="scene-orbit" aria-hidden="true"></div>
       <canvas id="orbitFx" class="orbit-fx" aria-hidden="true"></canvas><canvas id="cinemaCanvas" class="cinema-canvas" role="img" aria-label="A viagem animada de Pixel pelos portais"></canvas>
-      <header class="shell-header"><div class="orbit-wordmark"><span class="orbit-mark" aria-hidden="true"></span> ORBITHOP</div><div class="shell-meta"><i></i> CONEXÃO INTERDIMENSIONAL <span>—</span> VAMOS BRINCAR!</div></header>
-      <div id="menuContent" class="menu-content"><span class="menu-kicker">UMA AVENTURA EM CADA BATIDA!</span>
-        <h1 class="game-logo" aria-label="Robô Ritmado"><i class="logo-note" aria-hidden="true">♫</i><span class="logo-word logo-robot">Robô</span><span class="logo-word logo-rhythm">Ritmado</span><i class="logo-star" aria-hidden="true">✦</i></h1>
+
+      <div id="menuContent" class="menu-content"><span class="menu-kicker">UMA AVENTURA EM CADA PARTIDA!</span>
+        <h1 class="game-logo" aria-label="Robô Ritmado"><i class="logo-note" aria-hidden="true">♫</i><span class="logo-word logo-robot">Robô</span><span class="logo-word logo-rhythm">Ritmado</span><i class="logo-star" aria-hidden="true">✦</i><span class="logo-decoration" aria-hidden="true">✧　♪　✦　♫　✧</span></h1>
         <p class="menu-story">Uma guitarra. Muitos mundos!<br> Vem brincar com <strong>Pixel!</strong></p>
         <nav class="menu-nav" aria-label="Menu principal">
           <button id="menuPlay" class="orbit-button play" data-cue="play"><span class="button-icon" aria-hidden="true">▷</span>Jogar<span class="button-arrow" aria-hidden="true">↗</span></button>
@@ -29,7 +29,7 @@
       </div>
       <div id="portalScene" class="cinema-portal" aria-hidden="true"></div>
       <div id="orbitActor" class="actor-wrap"><div class="actor-plinth" aria-hidden="true"></div><canvas id="menuStage" class="menu-stage" aria-hidden="true"></canvas><canvas id="orbitPixel" role="img" aria-label="Pixel com seu outfit padrão e guitarra estrela, tocando devagar em OrbitHop"></canvas></div>
-      <div id="pixelGreeting" class="pixel-greeting"><b>Oi, eu sou Pixel!</b><br>Bora fazer uma música e viajar pelas estrelas?</div><button id="sayHello" class="say-hello" data-cue="tutorial">♡ Oi, Pixel!</button><div id="loadingTrip" class="toast" role="status" hidden>✦ Preparando nossa viagem…</div><div id="pixelName" class="pixel-name"><i></i><div>PIXEL<small>SOM QUE CONECTA MUNDOS</small></div></div>
+      <div id="pixelGreeting" class="pixel-greeting"><b>Oi, eu sou Pixel!</b><br>Bora fazer uma música e viajar pelas estrelas?</div><button id="sayHello" class="say-hello" data-cue="tutorial">Oi, Pixel! ♡</button><div id="loadingTrip" class="toast" role="status" hidden>✦ Preparando nossa viagem…</div><div id="pixelName" class="pixel-name"><i></i><div>PIXEL<small>SOM QUE CONECTA MUNDOS</small></div></div>
       <div id="cinemaUI" class="cinema-ui" hidden>
         <div class="cinema-top"><div class="cinema-place"><span id="sceneNumber">PRÓLOGO / 01</span><h2 id="scenePlace">OrbitHop, lar de Pixel</h2></div><div class="view-toolbar"><button id="pauseCinema" class="quiet-button" data-cue="options">Pausar cena</button><button id="skipCinema" class="quiet-button" data-cue="back">Pular introdução</button></div></div>
         <div class="cinema-bottom"><p id="storyAction" class="story-action"></p><div id="storyCaption" class="story-subtitle" role="status" aria-live="polite"></div><div id="storyProgress" class="cinema-progress" aria-hidden="true"></div><div class="cinema-controls"><button id="nextCinema" class="quiet-button" data-cue="play">Avançar cena →</button></div></div>
@@ -49,7 +49,7 @@
   document.body.insertAdjacentHTML('beforeend', `
     <dialog id="safetyDialog" class="safety-dialog" aria-labelledby="safetyTitle" aria-describedby="safetyCopy safetyRisk">
       <div class="welcome-portrait"><img src="assets/pixel-boas-vindas-v11.png" alt="Pixel no traje padrão, de braços acolhedores"></div>
-      <div class="safety-body"><span class="dialog-kicker">UM ABRAÇO ANTES DA AVENTURA</span><h2 id="safetyTitle">Seu ritmo<br>cabe aqui!</h2><p class="safety-welcome">Olá, aspirante! Eu sou Pixel. ♡</p>
+      <div class="safety-body"><span class="dialog-kicker">UM ABRAÇO ANTES DA AVENTURA</span><h2 id="safetyTitle">Seu ritmo cabe aqui<span class="welcome-bang">!</span></h2><p class="safety-welcome">Olá, aspirante! Eu sou Pixel. ♡</p>
       <p id="safetyCopy">Se você possui alguma deficiência ou necessidade singular, visite <strong>Acessibilidade</strong> antes da jornada. Vamos ajustar o jogo ao seu jeito?</p>
       <div class="welcome-features"><span>◈ Cores e leitura</span><span>♪ Movimento e ritmo</span><span>☏ Legendas e tempo</span></div>
       <p id="safetyRisk" class="welcome-warning"><strong>Cuidado com as luzes:</strong> o jogo contém luzes, animações e efeitos visuais que podem causar desconforto ou desencadear crises em pessoas fotossensíveis. Antes de jogar, ajuste os estímulos, o movimento e a velocidade às suas necessidades.</p>
@@ -79,7 +79,7 @@
   appActions.innerHTML = '<button id="gameMenu" class="quiet-button" data-cue="back" aria-label="Pausar e voltar ao menu">☰ <span class="settings-label">Menu</span></button><button id="gameAccessibility" class="quiet-button" data-cue="accessibility" aria-label="Abrir Acessibilidade">◎</button>';
   document.querySelector('.top-actions').prepend(appActions);
   document.querySelector('.brand')?.addEventListener('click',e=>{e.preventDefault();returnMenu();});
-  document.querySelector('footer span:last-child').textContent='VERSÃO 0.11 • OITO MUNDOS PRA BRINCAR!';
+
   const buttonInfo={menuPlay:['Jogar','Começar a aventura'],menuTutorial:['Tutorial','Aprender com Pixel'],menuOptions:['Opções','Ajustar sons e velocidade'],menuAccessibility:['Acessibilidade','Do seu jeitinho'],menuAbout:['Sobre Nós','Conheça nossa turma']};
   for(const [id,[title,sub]] of Object.entries(buttonInfo)){const button=$(id);button.setAttribute('aria-label',title);for(const node of [...button.childNodes])if(node.nodeType===Node.TEXT_NODE)node.remove();const label=document.createElement('span');label.className='button-copy';label.innerHTML='<b>'+title+'</b><small>'+sub+'</small>';button.insertBefore(label,button.querySelector('.button-arrow'));}
   let greetingUntil=0;
@@ -244,7 +244,7 @@
   let menuActorBox={x:0,y:0,w:1,h:1};
   function paintMenuStage(){
     const [w,h]=dims.get(actorCanvas)||[1,1],d=Math.min(devicePixelRatio||1,1.5);menuStage.width=Math.round(w*d);menuStage.height=Math.round((h+120)*d);menuStageCtx.setTransform(d,0,0,d,0,0);menuStageCtx.clearRect(0,0,w,h+120);
-    if(menuStageAsset.image.complete&&menuStageAsset.image.naturalWidth){const size=w*.98;menuStageCtx.drawImage(menuStageAsset.image,w*.51-size*.5,h*.86-size*.755,size,size);}
+    if(menuStageAsset.image.complete&&menuStageAsset.image.naturalWidth){const size=Math.min(w*.98,h*.84/.755);menuStageCtx.drawImage(menuStageAsset.image,w*.51-size*.5,h*.86-size*.755,size,size);}
   }
   menuStageAsset.ready.then(paintMenuStage).catch(()=>{});
   for(const canvas of [actorCanvas,fxCanvas,tutorialCanvas])new ResizeObserver(()=>{
