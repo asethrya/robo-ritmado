@@ -172,7 +172,7 @@
     configureLevel(index); bankedScore = carry; sprite = assets[index].sprite.image;
     RR_SPRITES.validate(sprite, FRAMES);
     danceTime = 0; danceFrame = 0; danceLevel = 0; reaction = 0; resetPerformance();
-    score = 0; combo = 0; maxCombo = 0; notes = []; particles = []; rings = []; danceSparks.length = 0;
+    score = 0; combo = 0; maxCombo = 0;lastReflectionSeen=false; notes = []; particles = []; rings = []; danceSparks.length = 0;
     stats = { perfect: 0, good: 0, near: 0, miss: 0 }; reaction = 0;
     modal('intro',true); modal('results',false); modal('pauseOverlay',false);
     $('countdown').innerHTML = ''; $('judgment').classList.remove('show');
@@ -188,29 +188,47 @@
     try { await showLevel(index, 0); }
     catch (error) { state = 'ready'; $('spriteStatus').hidden = false; $('spriteStatus').textContent = error.message; updateWorldButtons(); }
   }
-  let traveling=false;
+  let traveling=false,skipJourney=false,lastReflectionSeen=false;
+  const reflection=RR_REFLECTION.create($('travelCanvas'));
   const traveler=RR_TRAVEL.create($('travelCanvas'));
   async function travel(){
-    if(traveling||state!=='results'||score<GOAL||levelIndex+1>=LEVELS.length)return;
-    const next=levelIndex+1,carry=bankedScore+score,from={level,sprite,background:assets[levelIndex].background.image};
-    traveling=true;state='transition';modal('results',false);updateWorldButtons();$('retryTravel').hidden=true;
+    if(traveling||state!=='results'||score<GOAL)return;
+    const next=levelIndex+1,ending=next>=LEVELS.length,carry=bankedScore+score,from={level,sprite,background:assets[levelIndex].background.image};
+    traveling=true;skipJourney=false;state='transition';modal('results',false);updateWorldButtons();$('retryTravel').hidden=true;
     $('travelSummary').textContent=carry.toLocaleString('pt-BR')+' pontos seguem com você.';
-    $('travelDestination').textContent=LEVELS[next].name;
+    $('travelDestination').textContent=ending?'As peças se encaixam':LEVELS[next].name;
     $('travelOverlay').showModal();
     try{
-      levelAssets(next);
-      await Promise.all([assets[next].sprite.ready,assets[next].background.ready]);
-      const to={level:LEVELS[next],sprite:assets[next].sprite.image,background:assets[next].background.image};
-      await RR_AUDIO.unlock();RR_AUDIO.story(1);
-      await traveler.play(from,to);
+      let to=null;
+      if(!ending){
+        levelAssets(next);
+        await Promise.all([assets[next].sprite.ready,assets[next].background.ready]);
+        to={level:LEVELS[next],sprite:assets[next].sprite.image,background:assets[next].background.image};
+      }
+      await RR_AUDIO.unlock();RR_AUDIO.silence();
+      if(!skipJourney)await reflection.play(from,RR_NARRATIVE.reflections[levelIndex]);
+      if(!skipJourney&&to){
+        $('travelDestination').textContent=to.level.name;
+        await traveler.play(from,to);
+      }
       RR_AUDIO.silence();$('travelOverlay').close();
-      await showLevel(next,carry);
-      $('announcer').textContent='Pixel chegou com coragem a '+level.name+'. O novo outfit está pronto. Confira a fase e entre no ritmo.';
+      if(ending){
+        lastReflectionSeen=true;state='results';modal('results',true);
+        $('lastStory').textContent='Rever a descoberta de Pixel';
+        $('lockedJourney').hidden=false;
+        $('announcer').textContent='Pixel compreendeu a jornada. Fase 11, endgame em desenvolvimento e bloqueado.';
+      }else{
+        await showLevel(next,carry);
+        $('announcer').textContent='Pixel chegou com coragem a '+level.name+'. Confira a fase e entre no ritmo.';
+      }
     }catch(error){state='results';$('travelOverlay').close();modal('results',true);$('resultMessage').textContent='O portal precisa de mais um instante. '+error.message;updateWorldButtons();}
     finally{traveling=false;}
   }
-  $('pauseTravel').onclick=()=>traveler.toggle();$('skipTravel').onclick=()=>traveler.finish();
-  $('travelOverlay').addEventListener('cancel',e=>{e.preventDefault();traveler.toggle();});
+  function toggleJourney(){if(reflection.snapshot().active)reflection.toggle();else traveler.toggle();}
+  $('pauseTravel').onclick=toggleJourney;
+  $('nextTravel').onclick=()=>{if(reflection.snapshot().active)reflection.advance();else traveler.advance();};
+  $('skipTravel').onclick=()=>{skipJourney=true;reflection.finish();if(traveler.snapshot().active)traveler.finish();};
+  $('travelOverlay').addEventListener('cancel',event=>{event.preventDefault();toggleJourney();});
   for(const [id,action]of [['phaseDialog',()=>{}],['resultDialog',()=>{}],['pauseDialog',()=>resume()]])$(id).addEventListener('cancel',e=>{e.preventDefault();action();});
   let manualSoft = soft;
   function setSoft() {
@@ -435,7 +453,7 @@
       await prepareAudio();
       if (token !== generation) return;
       configureLevel(levelIndex); updateLevelUI();
-      score = 0; combo = 0; maxCombo = 0;
+      score = 0; combo = 0; maxCombo = 0;lastReflectionSeen=false;
       stats = { perfect: 0, good: 0, near: 0, miss: 0 };
       notes = CHART.map((n, i) => ({ ...n, id: i, result: null }));
       particles = []; rings = []; flashes.fill(0); pressed.fill(false); judgmentUntil = 0;
@@ -593,15 +611,16 @@
     $('resultTitle').textContent = charged ? (levelIndex ? 'Que grande show!' : 'O portal despertou!') : score ? 'Você fez música!' : 'Vamos tentar juntos?';
     $('resultMessage').textContent = charged ? (hasNext?LEVELS[levelIndex+1].name+' espera por você!':'Você concluiu a fase 10 e fechou esta parte da aventura!') : `Você fez ${score.toLocaleString('pt-BR')} de ${GOAL.toLocaleString('pt-BR')} pontos. A próxima fase espera: vamos praticar?`;
     $('resultDetail').textContent = `Combo: ${maxCombo} · Precisão: ${accuracy}% · Total: ${(bankedScore + score).toLocaleString('pt-BR')}`;
-    $('nextStage').hidden = !(charged && hasNext);$('lockedJourney').hidden=!(charged&&!hasNext);
-    if(hasNext)$('nextStage').innerHTML='Viajar para '+LEVELS[levelIndex+1].name+' <span>✦</span>';
+    $('nextStage').hidden = !(charged && hasNext);$('lockedJourney').hidden=!(charged&&!hasNext&&lastReflectionSeen);$('lastStory').hidden=!(charged&&!hasNext);
+    $('lastStory').textContent=lastReflectionSeen?'Rever a descoberta de Pixel':'O que Pixel descobriu?';
+    if(hasNext)$('nextStage').innerHTML='Ouvir Pixel e seguir para '+LEVELS[levelIndex+1].name+' <span>✦</span>';
     $('playAgain').classList.toggle('replay-secondary', charged && hasNext);
     $('resultHint').textContent = bankedScore ? `Você trouxe ${bankedScore.toLocaleString('pt-BR')} pontos dos mundos anteriores.` : charged ? 'Seus pontos seguem com você pelo portal.' : `Faltaram ${Math.max(0, GOAL - score).toLocaleString('pt-BR')} pontos para abrir o portal.`;
     $('pixelMessage').textContent = charged ? 'Conseguimos! Olha o nosso portal!' : 'Adorei tocar com você. Mais uma?';
     if (bankedScore + score > best) { best = bankedScore + score; save('robo-ritmado-best-v04', best); $('best').textContent = String(best).padStart(5, '0'); }
     $('announcer').textContent = `${charged?'Fase concluída!':'Vamos tentar de novo!'} ${score} pontos de ${GOAL} necessários. Maior combo: ${maxCombo}.${charged&&!hasNext?' Fase 11 bloqueada, em desenvolvimento.':''}`;
     updateWorldButtons();
-    (charged && hasNext ? $('nextStage') : $('playAgain')).focus({ preventScroll: true });
+    (charged ? hasNext ? $('nextStage') : $('lastStory') : $('playAgain')).focus({ preventScroll: true });
   }
   function laneX(lane) { return width * .16 + lane * width * .2266667; }
   function targetY() { return height - 67; }
@@ -801,7 +820,7 @@
     }
   }
   $('start').addEventListener('click', start);
-  $('nextStage').addEventListener('click', travel);
+  $('nextStage').addEventListener('click', travel);$('lastStory').addEventListener('click',travel);
   $('retryTravel').addEventListener('click', () => {
     travel();
   });
@@ -852,7 +871,7 @@
   // Read-only diagnostics for verifying timing, scoring, audio and pause behavior.
   // Gameplay has no autoplay or score-writing test hooks.
   Object.defineProperty(window, 'pixelDiagnostics', { value: Object.freeze({
-    snapshot: () => ({ state, transition:traveler.snapshot(), rate: runRate, arrowSpeed: runArrowSpeed, palette: [...COLORS], level: levelIndex + 1, world: level.id, bpm: BPM, song: level.song,
+    snapshot: () => ({ state, transition:reflection.snapshot().active?reflection.snapshot():traveler.snapshot(), rate: runRate, arrowSpeed: runArrowSpeed, palette: [...COLORS], level: levelIndex + 1, world: level.id, bpm: BPM, song: level.song,
       duration: DURATION, sprite: level.sprite, choreography: danceModel, instrument: level.instrument, meter: level.meter, background: level.background, stage: stageModel, emotion: {value:moodValue,name:RR_PERFORMANCE.moods[Math.round(moodValue)].name,recent:[...recentResults]}, musicSignature: MELODY.join(',') + '/' + BASS.join(','),
       bankedScore, totalScore: bankedScore + score, unlocked: toysUnlocked, unlockedThrough,
       effects: { trackParticles: particles.length, rings: rings.length, dancerParticles: danceSparks.length, reduced: soft },

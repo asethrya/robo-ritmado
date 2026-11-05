@@ -163,6 +163,7 @@
     const [speaker,text]=lines[index],bubble=$('storyCaption');bubble.dataset.speaker=speaker;bubble.replaceChildren();
     const b=document.createElement('b');b.textContent=(speaker==='PIXEL'?'✦ ':'♫ ')+speaker;bubble.append(b,document.createTextNode(text));
     bubble.classList.remove('changed');void bubble.offsetWidth;bubble.classList.add('changed');
+    $('nextCinema').textContent=index<lines.length-1?'Continuar diálogo →':shot===shots.length-1?'Vamos tocar! →':'Próxima cena →';
   }
   function renderShot(){
     $('sceneShell').dataset.shot=shot;$('sceneShell').dataset.storyWorld=shots[shot].world;
@@ -170,7 +171,7 @@
     $('storyAction').textContent=shots[shot].action;
     $('storyProgress').innerHTML=shots.map((_,i)=>'<span class="'+(i<=shot?'active':'')+'"></span>').join('');
     $('nextCinema').textContent=shot===shots.length-1?'Vamos tocar! →':'E depois? →';
-    $('cinemaCanvas').setAttribute('aria-label',shots[shot].action);speechKey='';renderSpeech();RR_AUDIO.story(shot);
+    $('cinemaCanvas').setAttribute('aria-label',shots[shot].action);speechKey='';renderSpeech();RR_AUDIO.scene(shots[shot].motion);
   }
   async function startCinema(){
     if(cinemaStarting)return;cinemaStarting=true;$('menuPlay').disabled=true;$('tutorialPlay').disabled=true;$('loadingTrip').hidden=false;
@@ -185,8 +186,13 @@
     finally{cinemaStarting=false;}
   }
   function nextShot(){if(shot===shots.length-1){enterAdventure();return;}shot++;shotElapsed=0;renderShot();}
-  $('menuPlay').onclick=startCinema; $('nextCinema').onclick=nextShot; $('skipCinema').onclick=enterAdventure;
-  $('pauseCinema').onclick=()=>{cinemaPaused=!cinemaPaused;$('sceneShell').classList.toggle('cinema-paused',cinemaPaused);if(cinemaPaused)RR_AUDIO.silence();else RR_AUDIO.story(shot);$('pauseCinema').textContent=cinemaPaused?'Continuar cena':'Pausar cena';};
+  function advanceDialogue(){
+    const next=shots[shot].lines.find(line=>line[2]>shotElapsed+.01);
+    if(next){shotElapsed=next[2];renderSpeech();}
+    else nextShot();
+  }
+  $('menuPlay').onclick=startCinema; $('nextCinema').onclick=advanceDialogue; $('skipCinema').onclick=enterAdventure;
+  $('pauseCinema').onclick=()=>{cinemaPaused=!cinemaPaused;$('sceneShell').classList.toggle('cinema-paused',cinemaPaused);if(cinemaPaused)RR_AUDIO.silence();else RR_AUDIO.scene(shots[shot].motion);$('pauseCinema').textContent=cinemaPaused?'Continuar cena':'Pausar cena';};
 
   // Learning progresses on successful input, rather than on elapsed time.
   const keys=['ArrowLeft','ArrowDown','ArrowUp','ArrowRight'], glyphs=['←','↓','↑','→'], names=['esquerda','baixo','cima','direita'];
@@ -275,7 +281,6 @@
     if(currentScreen==='menu'){const b=menuActorBox;fx.save();fx.translate(b.x,b.y);RR_PERFORMANCE.lighting(fx,{width:b.w,height:b.h,floor:b.h*.86,x:b.w*.51,colors:['#f67bda','#7edfff','#b7a1ff','#fff0be'],power:.8,beat:actorTime*.4,soft:RR_SETTINGS.gentle(),still:RR_SETTINGS.motion()===0,deluxe:true});fx.restore();}
     fx.textAlign='center';for(const [i,p] of motes.entries()){if(currentScreen==='tutorial'&&i%2)continue;const x=p.x*w+Math.sin(elapsed*.12+i)*18,y=h-((p.y+elapsed*p.speed)%1)*h;fx.globalAlpha=.15+Math.sin((y/h)*Math.PI)*.3;fx.fillStyle=i%2?'#a2d9f2':'#f3a5df';fx.font=`${p.s}px Segoe UI`;fx.fillText(p.symbol,x,y);}
     fx.globalAlpha=.28;guitarIcon(w*.84,h*.25,56,Math.sin(elapsed*.15)*.2);guitarIcon(w*.48,h*.75,33,-.7+elapsed*.03);fx.globalAlpha=1;
-    if(currentScreen==='cutscene'&&[1,2].includes(shot)){fx.strokeStyle=shot===2?'#f8b3c0':'#acdff5';fx.lineWidth=2;fx.globalAlpha=.45;for(let i=0;i<3;i++){fx.beginPath();fx.ellipse(w*.6,h*.49,30+((shotElapsed*.25+i*.3)%1)*w*.2,20+((shotElapsed*.25+i*.3)%1)*h*.24,-.3,0,Math.PI*2);fx.stroke();}fx.globalAlpha=1;}
   }
   function tutorialArrow(x,y,lane,size,color,filled){tc.save();tc.translate(x,y);tc.rotate([Math.PI,Math.PI/2,-Math.PI/2,0][lane]);tc.beginPath();[[-.44,-.23],[.03,-.23],[.03,-.46],[.49,0],[.03,.46],[.03,.23],[-.44,.23]].forEach(([a,b],i)=>i?tc.lineTo(a*size,b*size):tc.moveTo(a*size,b*size));tc.closePath();tc.lineWidth=filled?2:3;tc.fillStyle=filled?color:'#161b32';tc.strokeStyle=color;tc.fill();tc.stroke();tc.restore();}
   let tutorialBase=null,tutorialBaseKey='',tutorialDirty=true;

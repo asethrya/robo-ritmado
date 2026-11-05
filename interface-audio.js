@@ -81,13 +81,47 @@
       osc.connect(gain);gain.connect(fxGain);osc.start(now);osc.stop(now+1.45);voices.add(osc);osc.onended=()=>{voices.delete(osc);osc.disconnect();gain.disconnect();};
     }
   }
+  function scene(motion){
+    silence();
+    if(!context||!ready)return;
+    const now=context.currentTime;
+    if(motion==='show'){
+      cheer();
+      const buffer=context.createBuffer(1,Math.ceil(context.sampleRate*.075),context.sampleRate);
+      const samples=buffer.getChannelData(0);
+      let seed=7919;
+      for(let i=0;i<samples.length;i++){seed=seed*16807%2147483647;samples[i]=seed/1073741823.5-1;}
+      for(let i=0;i<24;i++){
+        const clap=context.createBufferSource(),gain=context.createGain(),at=now+i*.105;
+        clap.buffer=buffer;gain.gain.setValueAtTime(.012+(i%3)*.004,at);gain.gain.exponentialRampToValueAtTime(.0001,at+.07);
+        clap.connect(gain);gain.connect(fxGain);clap.start(at);voices.add(clap);
+        clap.onended=()=>{voices.delete(clap);clap.disconnect();gain.disconnect();};
+      }
+    }else if(['guitar','surge','levitate',3].includes(motion)){
+      const cluster=motion==='guitar'?[66,66.3,73,72.6]:[54,54.4,61,60.7,68];
+      cluster.forEach((midi,i)=>note(midi,now+i*.32,.65,.045,'triangle'));
+      if(motion==='levitate'||motion===3)portal(2);
+    }else if(motion===5){portal(2);note(48,now+1,.35,.05,'sine');}
+    else if(motion===6){note(48,now,.22,.09,'sine');note(76,now+.15,.35,.05,'triangle');}
+    else if(motion===8)cheer();
+    else if(motion===4)portal(1);
+    else [54,61,66].forEach((midi,i)=>note(midi,now+i*.2,2.2,.022,'sine'));
+  }
+  function reflectionScore(chapter,line){
+    silence();
+    if(!context||!ready)return;
+    const memory=chapter===10&&line===0;
+    const root=memory?40:chapter===7?53:chapter===10?55:50;
+    const intervals=memory?[0,7,13]:chapter===7||chapter===10?[0,7,12,16,19]:[0,7,12,15];
+    intervals.forEach((interval,index)=>note(root+interval,context.currentTime+index*.35,4,.025,'sine'));
+  }
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) stop();
     else if (mode === 'menu') menu();
   });
   window.addEventListener('rr-settings',gains);
   window.addEventListener('pagehide',()=>{stop(); context?.close();});
-  window.RR_AUDIO = Object.freeze({ unlock, menu, silence, cue, hit, portal, cheer, story,
+  window.RR_AUDIO = Object.freeze({ unlock, menu, silence, cue, hit, portal, cheer, story, scene, reflectionScore,
     snapshot: () => ({ state: context?.state || 'not-started', mode, music: 'Órbita de Casa', bpm: 78,
       menuGain: menuGain?.gain.value || 0, effectsGain: fxGain?.gain.value || 0, voices: voices.size }),
     level: () => { if (!meter) return 0; const d=new Float32Array(meter.fftSize); meter.getFloatTimeDomainData(d); return Math.sqrt(d.reduce((s,v)=>s+v*v,0)/d.length); }

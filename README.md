@@ -1,8 +1,16 @@
-# Robô Ritmado 0.12
+# Robô Ritmado 0.13
 
 Ajude Pixel a tocar e atravessar os dez mundos da aventura musical. Abra **Abrir-jogo.cmd** ou **index.html** no Chrome ou Edge com a pasta `assets` ao lado.
 
 Use **← ↓ ↑ →** ou os botões de toque quando a seta chegar ao alvo. **Esc** pausa a partida. O Tutorial do menu apresenta os controles e as janelas de acerto. O aviso de boas-vindas tem acesso direto aos ajustes de acessibilidade.
+
+## A jornada de Pixel
+
+Ao clicar em **Jogar**, acompanhe o fim de um show em OrbitHop, os bastidores e o camarim. Uma manifestação involuntária de energia leva Pixel ao Reino dos Doces. O prólogo tem 14 cenas e preserva as animações de chegada, queda, recuperação e reencontro com a guitarra.
+
+Depois de vencer cada mundo, Pixel compartilha reflexões diferentes antes de abrir voluntariamente o próximo caminho. Apenas o portal inicial e sua saída no Reino dos Doces têm a aparência anômala. A décima vitória revela a lembrança do Devorador de Mundos e a razão da viagem; a batalha de **OrbitHop · Endgame**, fase 11, permanece bloqueada e em desenvolvimento.
+
+As falas ficam visíveis por pelo menos sete segundos, com tempo adicional conforme o tamanho do texto. Use **Continuar diálogo**, **Pausar cena** ou **Pular cena** para acompanhar no seu ritmo. As cenas respeitam os ajustes de movimento, sensibilidade visual, legendas e som. O roteiro completo está em [narrative.js](narrative.js).
 
 ## Frenesi e metas
 

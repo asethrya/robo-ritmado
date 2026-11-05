@@ -1,7 +1,7 @@
 (() => {
   'use strict';
   function star(ctx,x,y,r,angle=0){ctx.beginPath();for(let i=0;i<10;i++){const a=angle+i*Math.PI/5-Math.PI/2,rr=i%2?r*.42:r;i?ctx.lineTo(x+Math.cos(a)*rr,y+Math.sin(a)*rr):ctx.moveTo(x+Math.cos(a)*rr,y+Math.sin(a)*rr);}ctx.closePath();}
-  function draw(ctx,x,y,rx,ry,time,open=1,front=false){
+  function draw(ctx,x,y,rx,ry,time,open=1,front=false,corrupted=false){
       if(open<=.01)return;const gentle=RR_SETTINGS.gentle(),safe=RR_SETTINGS.get().sensitivity;
       ctx.save();ctx.translate(x,y);ctx.scale(Math.max(.02,open),Math.max(.02,open));
       if(!front){
@@ -16,6 +16,29 @@
       ctx.shadowBlur=0;
       if(!safe){for(let j=0;j<3;j++){ctx.strokeStyle=['#a5edffbb','#eeb6fb99','#f8dfac99'][j];ctx.lineWidth=1.5;ctx.setLineDash([6+j*4,12+j*9]);ctx.lineDashOffset=gentle?0:-time*(14+j*6);ctx.beginPath();ctx.ellipse(0,0,rx+9+j*7,ry+11+j*8,(j-1)*.018,0,Math.PI*2);ctx.stroke();}ctx.setLineDash([]);
         for(let i=0;i<10;i++){const a=i*Math.PI/5+(gentle?0:time*.18);ctx.fillStyle=i%2?'#f5d887':'#abf2ff';star(ctx,Math.cos(a)*(rx+20),Math.sin(a)*(ry+21),i%3===0?5:3,a);ctx.fill();}}
+      if(corrupted){
+        if(!front){
+          ctx.fillStyle=safe?'#14132699':'#110d2fbb';
+          ctx.beginPath();ctx.ellipse(0,0,rx*.94,ry*.94,0,0,Math.PI*2);ctx.fill();
+        }
+        ctx.shadowBlur=0;
+        ctx.strokeStyle=safe?'#bcb4c9':'#dc7bac';
+        ctx.lineWidth=4;
+        for(let i=0;i<11;i++){
+          const angle=i*Math.PI*2/11;
+          const drift=gentle?0:Math.sin(time*1.7+i)*.025;
+          ctx.beginPath();
+          ctx.moveTo(Math.cos(angle)*(rx+5),Math.sin(angle)*(ry+5));
+          ctx.lineTo(Math.cos(angle+.06+drift)*(rx+17),Math.sin(angle+.06+drift)*(ry+17));
+          ctx.lineTo(Math.cos(angle+.13)*(rx-4),Math.sin(angle+.13)*(ry-4));
+          ctx.stroke();
+        }
+        ctx.strokeStyle=safe?'#504c66':'#180f33';
+        ctx.lineWidth=9;
+        ctx.setLineDash([16,26,6,34]);
+        ctx.lineDashOffset=gentle?0:time*11;
+        ctx.beginPath();ctx.ellipse(0,0,rx,ry,0,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);
+      }
       ctx.restore();
     }
   window.RR_PORTAL=Object.freeze({draw});
