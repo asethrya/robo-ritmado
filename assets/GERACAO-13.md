@@ -85,4 +85,3 @@ Prompt exato:
 ```text
 Isolate one complete electric guitar from this Pixel reference: the standard white angular five-point STAR body with pink face panels, cyan edge, small bunny and star decals, dark blue-purple neck and headstock. Exactly the same shape and color identity, polished anime game prop. Horizontal orientation with body left and long neck right, entire guitar and strings visible, clean silhouette, no hands, no character, no floor, no shadow, no frame or writing. Genuine transparent background, landscape prop.
 ```
-
