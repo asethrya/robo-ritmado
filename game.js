@@ -28,11 +28,33 @@
   let levelIndex = 0, level = LEVELS[0], bankedScore = 0, toysUnlocked = false, unlockedThrough = 0;
   let offset=0;
   let BPM, BEAT, SONG_BEATS, DURATION, COLORS, MELODY, BASS, CHART, MAX_POINTS, GOAL, FRAMES;
+  let battle = null, battleEvent = null, coda = null, battleAttempt = 0;
+  let battleText = '', holdGrace = 0;
+  const isBattle = () => level.id === 'fase11';
   function configureLevel(index) {
     levelIndex = index; level = LEVELS[index];
     runRate = RR_SETTINGS.rate(); runArrowSpeed = preferences().arrowSpeed;
     BPM = level.bpm; BEAT = 60 / BPM / runRate; SONG_BEATS = level.beats; DURATION = SONG_BEATS * BEAT;
     COLORS = palette(); MELODY = level.melody; BASS = level.bass; FRAMES = level.frames;
+    battle = null;
+    battleEvent = coda = null;
+    holdGrace = 0;
+    if (isBattle()) {
+      const schedule = RR_BATTLE.plan(preferences().shortSequences, Math.max(0,battleAttempt-1));
+      battle = RR_BATTLE.create(schedule);
+      SONG_BEATS = schedule.end + 8;
+      DURATION = SONG_BEATS * BEAT;
+      CHART = [];
+      for (let beat=4;beat<schedule.end;beat++) {
+        if (schedule.events.some(event=>beat>=event.begin && beat<event.end) || level.skipBeat(beat)) continue;
+        CHART.push({beat,lane:level.sequence[beat%level.sequence.length],time:beat*BEAT});
+      }
+      for (const event of schedule.events) CHART.push(...RR_BATTLE.eventNotes(event,BEAT));
+      CHART.sort((a,b)=>a.time-b.time);
+      MAX_POINTS=CHART.length*200;
+      GOAL=1;
+      return;
+    }
     CHART = [];
     for (let beat = 4, n = 0; beat < SONG_BEATS - 1; beat++) {
       if (level.skipBeat(beat)) continue;
@@ -122,7 +144,9 @@
     document.documentElement.style.setProperty('--pink', level.accent);
     document.querySelector('.world').style.backgroundImage = `url('${level.background}')`;
     $('trackBackdrop').style.backgroundImage=`url('${level.background}')`;
-    $('chapterLabel').textContent = `FASE  · ${levelIndex ? 'O SHOW CONTINUA' : 'PRIMEIRA PARADA'}`;
+    $('chapterLabel').textContent = `FASE ${String(levelIndex+1).padStart(2,'0')} · ${isBattle()?'BATALHA FINAL':levelIndex?'O SHOW CONTINUA':'PRIMEIRA PARADA'}`;
+    $('battleHUD').hidden=$('battleArt').hidden=!isBattle();
+    $('phaseDialog').classList.toggle('boss-intro',isBattle());
     $('levelTitle').textContent = level.title; $('levelEm').textContent = level.emphasis;
     $('levelSubtitle').textContent = level.subtitle;
     $('trackName').textContent = level.track;
@@ -130,8 +154,9 @@
     $('albumCover').src=level.album;$('albumCover').alt='Capa de '+level.song;$('phaseAlbum').src=level.album;
     $('phaseFlurries').innerHTML=Array.from({length:10},(_,i)=>'<img alt="" src="'+level.symbol+'" style="--i:'+i+'">').join('');
     $('frenzyIcon').src=level.symbol;
-    $('danceStyle').textContent=RR_PERFORMANCE.definitions[level.id].style;
-    $('dancePhrase').textContent=RR_PERFORMANCE.definitions[level.id].name;
+    const dance = RR_PERFORMANCE.definitions[level.id];
+    $('danceStyle').textContent=dance?.style || 'Rock cósmico';
+    $('dancePhrase').textContent=dance?.name || 'Defenda OrbitHop';
     $('tempoLabel').textContent = `${Math.round(BPM * runRate)} BPM · ${runRate < 1 ? Math.round(runRate * 100) + '% DO RITMO' : levelIndex ? 'NOVO RITMO' : 'FÁCIL'}`;
     $('songName').textContent = level.song; $('songDescription').textContent = `${level.style} · ${Math.round(BPM * runRate)} BPM`;
     $('time').textContent = `0:00 / ${formatTime(Math.ceil(DURATION))}`;
@@ -139,11 +164,12 @@
     document.querySelector('.song-progress').setAttribute('aria-valuenow', '0');
     const greetings={doces:'O caminho de casa<br>começa no <em>ritmo.</em>',brinquedos:'Todo mundo no<br><em>desfile de estrelas!</em>',gelo:'Pés leves na neve.<br>Vamos <em>valsar?</em>',nebulosa:'Uma melodia brilha<br><em>entre os vaga-lumes!</em>',atlanta:'Vamos seguir<br><em>o compasso das marés!</em>',ceu:'Lá no alto, a música<br><em>abraça as nuvens!</em>',deserto:'Nosso ritmo faz<br><em>as dunas dançarem!</em>',pantano:'Raízes e gotas no<br><em>balanço da floresta!</em>'};
     $('introTitle').innerHTML = (greetings[level.id] || level.subtitle).replace(/<br>/g,' ');
-    $('introCopy').innerHTML = levelIndex ? `O traje mudou. A música também!<br>${bankedScore ? bankedScore.toLocaleString('pt-BR') + ' pontos vieram com você.' : 'Vamos tocar em '+level.name+'?'}` : 'Pixel se perdeu entre os mundos.<br>Toque na batida e carregue o portal!';
-    $('introDetail').textContent = `${Math.ceil(DURATION)} segundos de música · Meta: ${GOAL.toLocaleString('pt-BR')} pontos`;
+    $('introCopy').textContent = isBattle() ? 'Responda aos avisos com as quatro setas. Segure as notas com cauda até o fim.' : 'Aperte a seta quando ela alcançar o alvo.';
+    $('introDetail').textContent = isBattle() ? 'Enfraqueça Galactus e complete os quatro anéis da Sinfonia dos Mundos.' : `${Math.ceil(DURATION)} s · Meta de ${GOAL.toLocaleString('pt-BR')} pontos`;
     $('pixelArt').setAttribute('aria-label', `Pixel dançando com a guitarra e o traje de ${level.name}`);
     document.querySelector('.stage').setAttribute('aria-label', `Jogo de ritmo em ${level.name}`);
     updateWorldButtons(); updateScore();
+    if (battle) updateBattle(-4);
   }
   const conversation={
     celebrate:['Uau, que sequência! Você está brilhando!','Olha esse ritmo! Você está mandando muito bem!','Seu esforço está virando música. Que orgulho!','Que show! Adoro tocar com você!','Essa batida é sua! Continue confiando em você!'],
@@ -167,12 +193,13 @@
   async function showLevel(index, carry = 0) {
     const token = ++generation;levelAssets(index);
     state = 'loading'; spriteReady = false; dancer.style.visibility = 'hidden'; updateWorldButtons(); clearInterval(scheduler); stopVoices();
-    await Promise.all([assets[index].sprite.ready, assets[index].background.ready]);
+    $('start').disabled=true;
+    await Promise.all([assets[index].sprite.ready, assets[index].background.ready, LEVELS[index].id==='fase11' ? RR_FINALE.arenaReady : null]);
     if (token !== generation) return;
     configureLevel(index); bankedScore = carry; sprite = assets[index].sprite.image;
     RR_SPRITES.validate(sprite, FRAMES);
     danceTime = 0; danceFrame = 0; danceLevel = 0; reaction = 0; resetPerformance();
-    score = 0; combo = 0; maxCombo = 0;lastReflectionSeen=false; notes = []; particles = []; rings = []; danceSparks.length = 0;
+    score = 0; combo = 0; maxCombo = 0;notes = []; particles = []; rings = []; danceSparks.length = 0;
     stats = { perfect: 0, good: 0, near: 0, miss: 0 }; reaction = 0;
     modal('intro',true); modal('results',false); modal('pauseOverlay',false);
     $('countdown').innerHTML = ''; $('judgment').classList.remove('show');
@@ -182,52 +209,49 @@
     await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
     if (token !== generation) return;
     resize(); resizeDancer(); spriteReady = true; dancer.style.visibility = 'visible';modal('intro',true);
+    $('start').disabled=false;
   }
   async function selectWorld(index) {
     if (settingsLocked() || index > unlockedThrough || index>=LEVELS.length) return;
     try { await showLevel(index, 0); }
-    catch (error) { state = 'ready'; $('spriteStatus').hidden = false; $('spriteStatus').textContent = error.message; updateWorldButtons(); }
+    catch (error) { state = 'ready'; $('start').disabled=false; $('spriteStatus').hidden = false; $('spriteStatus').textContent = error.message; updateWorldButtons(); }
   }
-  let traveling=false,skipJourney=false,lastReflectionSeen=false;
+  let traveling=false,skipJourney=false;
   const reflection=RR_REFLECTION.create($('travelCanvas'));
   const traveler=RR_TRAVEL.create($('travelCanvas'));
   async function travel(){
-    if(traveling||state!=='results'||score<GOAL)return;
-    const next=levelIndex+1,ending=next>=LEVELS.length,carry=bankedScore+score,from={level,sprite,background:assets[levelIndex].background.image};
+    if(traveling||state!=='results'||score<GOAL||isBattle())return;
+    const next=levelIndex+1,carry=bankedScore+score,from={level,sprite,background:assets[levelIndex].background.image};
     traveling=true;skipJourney=false;state='transition';modal('results',false);updateWorldButtons();$('retryTravel').hidden=true;
     $('travelSummary').textContent=carry.toLocaleString('pt-BR')+' pontos seguem com você.';
-    $('travelDestination').textContent=ending?'As peças se encaixam':LEVELS[next].name;
+    $('travelDestination').textContent=LEVELS[next].name;
     $('travelOverlay').showModal();
     try{
-      let to=null;
-      if(!ending){
-        levelAssets(next);
-        await Promise.all([assets[next].sprite.ready,assets[next].background.ready]);
-        to={level:LEVELS[next],sprite:assets[next].sprite.image,background:assets[next].background.image};
-      }
+      levelAssets(next);
+      await Promise.all([assets[next].sprite.ready,assets[next].background.ready]);
+      const to={level:LEVELS[next],sprite:assets[next].sprite.image,background:assets[next].background.image};
       await RR_AUDIO.unlock();RR_AUDIO.silence();
       if(!skipJourney)await reflection.play(from,RR_NARRATIVE.reflections[levelIndex]);
-      if(!skipJourney&&to){
+      if(!skipJourney){
         $('travelDestination').textContent=to.level.name;
-        await traveler.play(from,to);
+        if (to.level.id==='fase11') await RR_FINALE.play('return',from);
+        else await traveler.play(from,to);
       }
       RR_AUDIO.silence();$('travelOverlay').close();
-      if(ending){
-        lastReflectionSeen=true;state='results';modal('results',true);
-        $('lastStory').textContent='Rever a descoberta de Pixel';
-        $('lockedJourney').hidden=false;
-        $('announcer').textContent='Pixel compreendeu a jornada. Fase 11, endgame em desenvolvimento e bloqueado.';
-      }else{
-        await showLevel(next,carry);
-        $('announcer').textContent='Pixel chegou com coragem a '+level.name+'. Confira a fase e entre no ritmo.';
-      }
-    }catch(error){state='results';$('travelOverlay').close();modal('results',true);$('resultMessage').textContent='O portal precisa de mais um instante. '+error.message;updateWorldButtons();}
+      await showLevel(next,carry);
+      $('announcer').textContent='Pixel chegou com coragem a '+level.name+'. Confira a fase e entre no ritmo.';
+    }catch(error){state='results';$('start').disabled=false;$('travelOverlay').close();modal('results',true);$('resultMessage').textContent='O portal precisa de mais um instante. '+error.message;updateWorldButtons();}
     finally{traveling=false;}
   }
-  function toggleJourney(){if(reflection.snapshot().active)reflection.toggle();else traveler.toggle();}
+  function journeyController(){
+    if(RR_FINALE.active())return RR_FINALE;
+    return reflection.snapshot().active?reflection:traveler;
+  }
+  function toggleJourney(){journeyController().toggle();}
   $('pauseTravel').onclick=toggleJourney;
-  $('nextTravel').onclick=()=>{if(reflection.snapshot().active)reflection.advance();else traveler.advance();};
-  $('skipTravel').onclick=()=>{skipJourney=true;reflection.finish();if(traveler.snapshot().active)traveler.finish();};
+  $('nextTravel').onclick=()=>journeyController().advance();
+  $('backTravel').onclick=()=>journeyController().back();
+  $('skipTravel').onclick=()=>{skipJourney=true;reflection.finish();RR_FINALE.finish();if(traveler.snapshot().active)traveler.finish();};
   $('travelOverlay').addEventListener('cancel',event=>{event.preventDefault();toggleJourney();});
   for(const [id,action]of [['phaseDialog',()=>{}],['resultDialog',()=>{}],['pauseDialog',()=>resume()]])$(id).addEventListener('cancel',e=>{e.preventDefault();action();});
   let manualSoft = soft;
@@ -245,14 +269,14 @@
   function chartTime() { return clock() - offset / 1000; }
   function resize() {
     const box = canvas.getBoundingClientRect();
-    const dpr = Math.min(devicePixelRatio || 1, 1.5);
+    const dpr = RR_SETTINGS.dpr();
     width = box.width; height = box.height;frameDirty=true;
     canvas.width = Math.round(width * dpr); canvas.height = Math.round(height * dpr);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
   new ResizeObserver(resize).observe(canvas);
   function resizeDancer() {
-    const box = dancer.getBoundingClientRect(), dpr = Math.min(devicePixelRatio || 1, 1.5);
+    const box = dancer.getBoundingClientRect(), dpr = RR_SETTINGS.dpr();
     dancerWidth = Math.max(1, box.width); dancerHeight = Math.max(1, box.height);
     dancer.width = Math.round(dancerWidth * dpr); dancer.height = Math.round(dancerHeight * dpr);
     danceCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -285,7 +309,8 @@
     if(!paused)moodValue+=(target-moodValue)*(1-Math.exp(-dt*2.2));
     const mood=Math.max(0,Math.min(4,Math.round(moodValue)));
     danceFrame=0;danceLevel=Math.min(3,Math.floor(progress*4));
-    danceModel=RR_PERFORMANCE.draw(danceCtx,sprite,level,{width:dancerWidth,height:dancerHeight,beat,progress,amount:still?0:(soft?.5:1)*groove*1.65,mood,soft,danceImage:assets[levelIndex].dance?.image});
+    if(frenzy)drawAura(beat);
+    danceModel=RR_PERFORMANCE.draw(danceCtx,sprite,level,{width:dancerWidth,height:dancerHeight,beat,progress,amount:still?0:(soft?.5:1)*groove*1.65,mood,soft,danceImage:assets[levelIndex].dance?.image,lane:reactionKind==='miss'?null:reactionLane,gesture:still?0:reaction/.42});
     danceFrame=danceModel.frame;
     const power=groove;
     stageModel=RR_PERFORMANCE.platform(stageCtx,{width:dancerWidth,height:stageHeight,floor:danceModel.floor,x:danceModel.x,id:level.id,colors:COLORS,accent:level.accent,power,beat,soft,still,deluxe:true,frenzy,symbol:assets[levelIndex].symbol.image});
@@ -310,6 +335,21 @@
     for(let i=danceSparks.length-1;i>=0;i--)if(danceSparks[i].age>=danceSparks[i].life)danceSparks.splice(i,1);
   }
   const hz = midi => 440 * 2 ** ((midi - 69) / 12);
+  function drawAura(beat){
+    const x=dancerWidth*.52,y=dancerHeight*.55,r=Math.min(dancerHeight*.44,dancerWidth*.43);
+    if(r<1)return;
+    const halo=danceCtx.createRadialGradient(x,y,r*.23,x,y,r);
+    halo.addColorStop(0,level.accent+'00');
+    halo.addColorStop(.64,level.accent+(soft?'26':'78'));
+    halo.addColorStop(1,level.accent+'00');
+    danceCtx.fillStyle=halo;danceCtx.fillRect(x-r,y-r,r*2,r*2);
+    danceCtx.save();danceCtx.strokeStyle=level.accent;danceCtx.globalAlpha=soft?.48:.75;danceCtx.lineWidth=3;
+    for(let i=0;i<(soft?1:3);i++){
+      const t=soft?0:beat*.55+i*2;
+      danceCtx.beginPath();danceCtx.ellipse(x,y,r*(.50+i*.1),r*(.92+i*.07),Math.sin(t)*.26,0,Math.PI*2);danceCtx.stroke();
+    }
+    danceCtx.restore();
+  }
   function tone(midi, when, duration, level = .09, type = 'triangle', destination = master) {
     const osc = audio.createOscillator(), gain = audio.createGain();
     osc.type = type; osc.frequency.value = hz(midi);
@@ -441,7 +481,7 @@
     const energy = Math.min(100, Math.floor(score / GOAL * 100));
     $('energyValue').textContent = `${energy}%`; $('energyFill').style.width = `${energy}%`;
     $('energyHint').textContent = energy >= 100 ? (levelIndex ? 'Show carregado! Continue tocando.' : 'Portal carregado! Conclua a música.') : `Nesta fase: ${score.toLocaleString('pt-BR')} / ${GOAL.toLocaleString('pt-BR')} pontos`;
-    document.body.classList.toggle('portal-charged', energy >= 100);
+    document.body.classList.toggle('portal-charged', !battle && energy >= 100);
   }
   async function start() {
     if (starting || ['transition', 'loading'].includes(state)) return;
@@ -452,8 +492,9 @@
       await Promise.all([assets[levelIndex].sprite.ready, assets[levelIndex].background.ready]);
       await prepareAudio();
       if (token !== generation) return;
+      if(isBattle()) battleAttempt++;
       configureLevel(levelIndex); updateLevelUI();
-      score = 0; combo = 0; maxCombo = 0;lastReflectionSeen=false;
+      score = 0; combo = 0; maxCombo = 0;
       stats = { perfect: 0, good: 0, near: 0, miss: 0 };
       notes = CHART.map((n, i) => ({ ...n, id: i, result: null }));
       particles = []; rings = []; flashes.fill(0); pressed.fill(false); judgmentUntil = 0;
@@ -492,6 +533,7 @@
     try {
       await audio.resume();
       state = previousState; modal('pauseOverlay',false);
+      holdGrace=chartTime()+.4/runRate;
       $('pause').textContent = 'Ⅱ'; $('pause').setAttribute('aria-label', 'Pausar música');
       scheduleMusic(); scheduler = setInterval(scheduleMusic, 25);
       $('announcer').textContent = 'Vamos continuar!'; caption('Continue na batida!', 1);
@@ -501,7 +543,7 @@
   function spawn(lane, kind) {
     if (preferences().sensitivity) return;
     const x = laneX(lane), y = targetY();
-    for (let i = 0; i < (soft ? 4 : kind === 'perfect' ? 42 : kind === 'miss' ? 8 : 24); i++) {
+    for (let i = 0; i < (soft ? 4 : kind === 'perfect' ? 42 : kind === 'miss' ? 8 : 24)*RR_SETTINGS.effects(); i++) {
       const angle = Math.random() * Math.PI * 2, speed = 40 + Math.random() * 230;
       particles.push({ x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed - 65,
         life: .45 + Math.random() * .6, age: 0, color: kind === 'miss' ? '#b9a6ce' : i % 5 === 0 ? '#fff5cf' : COLORS[(lane + i % 3) % 4],
@@ -523,6 +565,12 @@
     if (note.result) return;
     const points = POINTS[kind] * (frenzy && kind === 'perfect' ? 2 : 1);
     note.result = kind;
+    battle?.note(note);
+    if(kind==='miss'&&battleEvent?.id==='rebound'&&note.event===battleEvent.key&&!battle.resolved(note.event)){
+      const exchange=notes.filter(candidate=>candidate.event===note.event);
+      for(const remaining of exchange)if(!remaining.result)remaining.result='skip';
+      battle.resolve(battleEvent,exchange,clock()/BEAT);
+    }
     stats[kind]++;
     score += points;
     perfectStreak = kind === 'perfect' ? perfectStreak + 1 : 0;
@@ -532,7 +580,7 @@
     combo = kind === 'perfect' || kind === 'good' ? combo + 1 : 0;
     maxCombo = Math.max(maxCombo, combo);
     reaction = .42; reactionKind = kind; reactionLane = note.lane;
-    if (kind !== 'miss' && !reducedMotion && !preferences().sensitivity) for (let i = 0; i < (soft ? 2 : kind === 'perfect' ? 24 : 14); i++) {
+    if (kind !== 'miss' && !reducedMotion && !preferences().sensitivity) for (let i = 0; i < (soft ? 2 : kind === 'perfect' ? 24 : 14)*RR_SETTINGS.effects(); i++) {
       danceSparks.push({ x: -100 + Math.random() * 170, y: -50 + Math.random() * 60,
         vx: (Math.random() - .5) * 220, vy: -70 - Math.random() * 130,
         age: 0, life: .8 + Math.random() * .4, color: COLORS[note.lane],
@@ -559,15 +607,17 @@
     flashes[lane] = preferences().sensitivity ? 0 : .16;
     if (state !== 'playing') return;
     const t = chartTime();
-    const candidates = notes.filter(n => !n.result && n.lane === lane && Math.abs(n.time - t) <= .24 / runRate);
+    if(notes.some(n=>n.held&&!n.result&&n.lane===lane))return;
+    const candidates = notes.filter(n => !n.result && !n.held && n.lane === lane && Math.abs(n.time - t) <= hitWindow(n));
     candidates.sort((a, b) => Math.abs(a.time - t) - Math.abs(b.time - t));
     if (candidates.length) {
       const note = candidates[0], delta = Math.abs(note.time - t);
+      if(note.hold){note.held=true;return;}
       judge(note, delta <= .075 / runRate ? 'perfect' : delta <= .15 / runRate ? 'good' : 'near');
     } else {
       // Wrong direction consumes a note only during its actual hit window.
       // Extra presses between notes do not create additional score penalties.
-      const wrong = notes.filter(n => !n.result && Math.abs(n.time - t) <= .24 / runRate)
+      const wrong = notes.filter(n => !n.result && !n.held && Math.abs(n.time - t) <= hitWindow(n))
         .sort((a, b) => Math.abs(a.time - t) - Math.abs(b.time - t))[0];
       if (wrong) judge(wrong, 'miss');
     }
@@ -580,7 +630,7 @@
     document.querySelector('.song-progress').setAttribute('aria-valuenow', '100');
     $('time').textContent = `${formatTime(Math.ceil(DURATION))} / ${formatTime(Math.ceil(DURATION))}`;
     modal('results',true);
-    const retry = score < GOAL;
+    const retry = battle ? !battle.snapshot().won : score < GOAL;
     $('retryCoach').hidden = !retry;
     $('retryPixel').hidden = !retry;
     $('resultDialog').classList.toggle('retry-dialog', retry);
@@ -593,34 +643,83 @@
       portrait.height = cropHeight;
       context.drawImage(sprite,x,y,width,cropHeight,0,0,width,cropHeight);
     }
-    $('playAgain').innerHTML=score>=GOAL?'Tocar de novo <span>↻</span>':'Tentar de novo com Pixel <span>↻</span>';
+    $('playAgain').innerHTML=!retry?'Tocar de novo <span>↻</span>':'Tentar de novo com Pixel <span>↻</span>';
 
     $('resultScore').innerHTML = `${score.toLocaleString('pt-BR')} <small>pontos</small>`;
     $('resultPerfect').textContent = stats.perfect; $('resultGood').textContent = stats.good;
     $('resultNear').textContent = stats.near; $('resultMiss').textContent = stats.miss;
-    const accuracy = Math.round(basePoints() / (CHART.length * 100) * 100);
+    const accuracy = Math.round(basePoints() / (notes.filter(note=>note.result!=='skip').length * 100) * 100);
     const stars = accuracy >= 85 ? 3 : accuracy >= 55 ? 2 : accuracy > 0 ? 1 : 0;
     $('stars').textContent = '✦'.repeat(stars) + '✧'.repeat(3 - stars);
     $('stars').setAttribute('aria-label', `${stars} de 3 estrelas`);
-    const charged = score >= GOAL;
+    const charged = !retry;
     speak(charged?'Conseguimos! Eu sabia que você podia!':'Seu esforço vale muito. Vamos tentar outra vez?',charged?'celebrate':'encourage');
     const hasNext=levelIndex<LEVELS.length-1;
     if(charged)$('energyHint').textContent=hasNext?'Portal aberto para '+LEVELS[levelIndex+1].name+'!':'Dez mundos no nosso ritmo!';
     if(charged&&hasNext){unlockedThrough=Math.max(unlockedThrough,levelIndex+1);toysUnlocked=true;save('rr-worlds-v07',unlockedThrough);save('robo-ritmado-toys-unlocked','true');}
     $('resultPill').textContent=charged?'✦ FASE '+(levelIndex+1)+' CONCLUÍDA':'♡ MAIS UMA TENTATIVA JUNTOS';
     $('resultTitle').textContent = charged ? (levelIndex ? 'Que grande show!' : 'O portal despertou!') : score ? 'Você fez música!' : 'Vamos tentar juntos?';
-    $('resultMessage').textContent = charged ? (hasNext?LEVELS[levelIndex+1].name+' espera por você!':'Você concluiu a fase 10 e fechou esta parte da aventura!') : `Você fez ${score.toLocaleString('pt-BR')} de ${GOAL.toLocaleString('pt-BR')} pontos. A próxima fase espera: vamos praticar?`;
+    $('resultMessage').textContent = battle ? (charged?'A música voltou a OrbitHop!':'A cidade conta com você. Leia os avisos e tente a batalha novamente.') : charged ? LEVELS[levelIndex+1].name+' espera por você!' : `Você fez ${score.toLocaleString('pt-BR')} de ${GOAL.toLocaleString('pt-BR')} pontos. Vamos praticar?`;
     $('resultDetail').textContent = `Combo: ${maxCombo} · Precisão: ${accuracy}% · Total: ${(bankedScore + score).toLocaleString('pt-BR')}`;
-    $('nextStage').hidden = !(charged && hasNext);$('lockedJourney').hidden=!(charged&&!hasNext&&lastReflectionSeen);$('lastStory').hidden=!(charged&&!hasNext);
-    $('lastStory').textContent=lastReflectionSeen?'Rever a descoberta de Pixel':'O que Pixel descobriu?';
+    $('nextStage').hidden = !(charged && hasNext);$('lastStory').hidden=!(charged&&battle);
+    $('lastStory').textContent='Rever o desfecho';
     if(hasNext)$('nextStage').innerHTML='Ouvir Pixel e seguir para '+LEVELS[levelIndex+1].name+' <span>✦</span>';
     $('playAgain').classList.toggle('replay-secondary', charged && hasNext);
-    $('resultHint').textContent = bankedScore ? `Você trouxe ${bankedScore.toLocaleString('pt-BR')} pontos dos mundos anteriores.` : charged ? 'Seus pontos seguem com você pelo portal.' : `Faltaram ${Math.max(0, GOAL - score).toLocaleString('pt-BR')} pontos para abrir o portal.`;
+    $('resultHint').textContent = battle ? 'Quatro anéis completam a Sinfonia dos Mundos.' : bankedScore ? `Você trouxe ${bankedScore.toLocaleString('pt-BR')} pontos dos mundos anteriores.` : charged ? 'Seus pontos seguem com você pelo portal.' : `Faltaram ${Math.max(0, GOAL - score).toLocaleString('pt-BR')} pontos para abrir o portal.`;
     $('pixelMessage').textContent = charged ? 'Conseguimos! Olha o nosso portal!' : 'Adorei tocar com você. Mais uma?';
     if (bankedScore + score > best) { best = bankedScore + score; save('robo-ritmado-best-v04', best); $('best').textContent = String(best).padStart(5, '0'); }
-    $('announcer').textContent = `${charged?'Fase concluída!':'Vamos tentar de novo!'} ${score} pontos de ${GOAL} necessários. Maior combo: ${maxCombo}.${charged&&!hasNext?' Fase 11 bloqueada, em desenvolvimento.':''}`;
+    $('announcer').textContent = charged?'Fase concluída!':'Vamos tentar de novo!';
     updateWorldButtons();
     (charged ? hasNext ? $('nextStage') : $('lastStory') : $('playAgain')).focus({ preventScroll: true });
+    if (battle && charged) playEnding();
+  }
+  async function playEnding(){
+    if(traveling||state!=='results'||!battle?.snapshot().won)return;
+    traveling=true;skipJourney=false;state='transition';modal('results',false);
+    $('travelSummary').textContent='';$('travelOverlay').showModal();
+    try { await RR_AUDIO.unlock();if(!skipJourney)await RR_FINALE.play('victory'); }
+    catch (error) { $('resultMessage').textContent=error.message; }
+    finally {
+      RR_AUDIO.silence();$('travelOverlay').close();state='results';traveling=false;
+      modal('results',true);$('lastStory').focus({preventScroll:true});
+    }
+  }
+  function hitWindow(note) {
+    const rules=RR_BATTLE.rules;
+    return (note.event!=null&&preferences().assistTiming?rules.assistedTolerance:rules.tolerance)/runRate;
+  }
+  function updateBattle(beat) {
+    const status=battle.snapshot();
+    const schedule=battle.schedule;
+    const expired=schedule.events.find(event=>beat>=event.end&&!battle.resolved(event.key));
+    if(expired) battle.resolve(expired,notes.filter(note=>note.event===expired.key),beat);
+    if(coda&&beat>=coda.end&&!battle.resolved(coda.key)){
+      battle.resolve(coda,notes.filter(note=>note.event===coda.key),beat);
+      coda=null;
+    }
+    const current=battle.snapshot();
+    if(beat>=schedule.end && current.ready && !current.won && !coda){
+      coda=RR_BATTLE.finale(Math.ceil(beat)+RR_BATTLE.rules.warning,current.ring);
+      notes.push(...RR_BATTLE.eventNotes(coda,BEAT).map((note,index)=>({...note,id:notes.length+index,result:null})));
+      SONG_BEATS=coda.end+2;DURATION=SONG_BEATS*BEAT;
+    }
+    const activeEvent=coda || schedule.events.find(event=>beat>=event.warn&&beat<event.end&&!battle.resolved(event.key));
+    if(activeEvent && battleEvent?.key!==activeEvent.key) RR_AUDIO.battleCue(activeEvent.element);
+    battleEvent=activeEvent ? {
+      ...activeEvent,
+      hits:notes.filter(note=>note.event===activeEvent.key&&['perfect','good','near'].includes(note.result)).length
+    } : null;
+    if(status.pixel!==current.pixel || status.enemy!==current.enemy) RR_AUDIO.battleCue(current.result?.event.element);
+    if($('pixelMeter').value!==current.pixel){$('pixelMeter').value=current.pixel;$('pixelLife').value=current.pixel+' / 100';}
+    if($('bossMeter').value!==current.enemy){$('bossMeter').value=current.enemy;$('bossLife').value=current.enemy+' / 150';}
+    const event=battleEvent;
+    const arrows=['←','↓','↑','→'];
+    const result=current.result;
+    const text=event ? `${RR_BATTLE.elements[event.element][0]} ${event.name} · ${beat<event.begin?'Prepare-se':'Agora'}\n${event.pattern.map(lane=>arrows[lane]).join(' ')} · ${event.cue}`
+      : result&&beat-result.beat<3 ? (result.damage?'−'+result.damage+' Galactus':result.loss?'−'+result.loss+' Pixel':result.heal?'+'+result.heal+' vida':'♪ Evento encerrado')
+      : `♪ Toque para carregar · Energia ${current.energy}/12${current.ring?' · Anéis '+current.ring+'/4':''}`;
+    if(text!==battleText){battleText=text;$('battleCue').textContent=text;}
+    return current;
   }
   function laneX(lane) { return width * .16 + lane * width * .2266667; }
   function targetY() { return height - 67; }
@@ -691,8 +790,15 @@
     }
     if (state === 'playing') {
       if (musicT > BEAT * .8) $('countdown').innerHTML = '';
-      for (const note of notes) if (!note.result && t > note.time + .24 / runRate) judge(note, 'miss');
-      if (musicT >= DURATION){for(const note of notes)if(!note.result)judge(note,'miss');finish();}
+      for (const note of notes) {
+        if (note.result) continue;
+        if (note.held) {
+          if (t>=note.time+note.hold && pressed[note.lane]) judge(note,'perfect');
+          else if (!pressed[note.lane]&&t>=holdGrace) judge(note,t>=note.time+note.hold*.5?'near':'miss');
+        } else if (t>note.time+hitWindow(note)) judge(note,'miss');
+      }
+      const outcome=battle&&updateBattle(t/BEAT);
+      if (outcome?.won || outcome?.lost || musicT >= DURATION) {for(const note of notes)if(!note.result)judge(note,'miss');finish();}
     }
     if (active && state !== 'results') {
       const progress = Math.min(1, Math.max(0, musicT / DURATION));
@@ -708,11 +814,21 @@
       if (timestamp > captionUntil) $('captionResult').textContent = '';
     }
     if(active&&state==='playing'&&performance.now()-lastBalloon>8500)nextConversation(recentResults.length&&recentResults.slice(-3).every(n=>n===0)?'encourage':'waiting');
-    drawDancer(dt, active);
+    if (battle && state!=='paused') reaction=Math.max(0,reaction-dt);
+    if (battle) RR_FINALE.drawArena($('battleArt'),sprite,Math.max(0,musicT)/BEAT,battleEvent,{...battle.snapshot(),frenzy},reactionLane,reactionKind==='miss'?0:reaction);
+    else drawDancer(dt, active);
     ctx.clearRect(0, 0, width, height);
     const target = targetY(), laneWidth = width * .2266667, size = Math.min(78 * (preferences().scaleEnabled ? preferences().arrowScale : 1), laneWidth * .88);
     const bg = ctx.createLinearGradient(0, 0, 0, height);
     bg.addColorStop(0, preferences().highContrast ? '#000000' : level.panel[0]); bg.addColorStop(1, preferences().highContrast ? '#000000' : level.panel[1]); ctx.fillStyle = bg; ctx.fillRect(0, 0, width, height);
+    if(battleEvent?.blocked && t/BEAT>=battleEvent.begin){
+      for(const lane of battleEvent.blocked){
+        const x=laneX(lane)-laneWidth/2;
+        ctx.fillStyle='#1a0f26aa';ctx.fillRect(x,0,laneWidth,height);
+        ctx.fillStyle='#f6dcff';ctx.font='bold 15px system-ui';ctx.textAlign='center';
+        ctx.fillText('×',laneX(lane),22);
+      }
+    }
     // Lanes carry a subtle stable color so the hit line remains readable.
     for (let lane = 0; lane < 4; lane++) {
       const x = laneX(lane);
@@ -769,10 +885,18 @@
     }
     for (const note of notes) {
       if (note.result) continue;
-      const y = target - (note.time - t) * speed;
+      const y = note.held ? target : target - (note.time - t) * speed;
       if (y < -70 || y > height + 50) continue;
       const approach = Math.max(0, Math.min(1, (target - y) / target));
       const x = laneX(note.lane) + (soft ? 0 : Math.sin(visualTime * 4 + note.id) * 3 * approach), color = COLORS[note.lane];
+      if(note.hold){
+        const end=target-(note.time+note.hold-t)*speed;
+        ctx.fillStyle=color;ctx.globalAlpha=.7;ctx.fillRect(x-5,Math.min(end,y),10,Math.abs(y-end));
+        ctx.globalAlpha=1;ctx.fillRect(x-11,end,22,3);
+      }
+      if(note.event!=null){
+        ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.strokeRect(x-size*.43,y-size*.43,size*.86,size*.86);
+      }
       const trail = ctx.createLinearGradient(0, y - 95, 0, y); trail.addColorStop(0, color + '00'); trail.addColorStop(1, color + '75');
       if (!preferences().sensitivity) { ctx.fillStyle = trail; ctx.fillRect(x - 5, y - 95, 10, 82); }
       if (!soft) {
@@ -820,7 +944,7 @@
     }
   }
   $('start').addEventListener('click', start);
-  $('nextStage').addEventListener('click', travel);$('lastStory').addEventListener('click',travel);
+  $('nextStage').addEventListener('click', travel);$('lastStory').addEventListener('click',playEnding);
   $('retryTravel').addEventListener('click', () => {
     travel();
   });
@@ -855,14 +979,22 @@
       if (state === 'paused') resume(); else pause();
     }
   });
-  document.addEventListener('keyup', event => { const lane = KEYS.indexOf(event.key); if (lane >= 0) pressed[lane] = false; });
+  function releaseLane(lane){
+    pressed[lane]=false;
+    if(state!=='playing'||!battle)return;
+    const held=notes.find(note=>note.held&&!note.result&&note.lane===lane);
+    if(!held)return;
+    const heldTime=chartTime()-held.time;
+    judge(held,heldTime>=held.hold-.045/runRate?'perfect':heldTime>=held.hold*.5?'near':'miss');
+  }
+  document.addEventListener('keyup', event => { const lane = KEYS.indexOf(event.key); if (lane >= 0) releaseLane(lane); });
   for (const button of document.querySelectorAll('[data-lane]')) {
     button.addEventListener('pointerdown', event => {
       event.preventDefault(); const lane = Number(button.dataset.lane);
       if (!pressed[lane]) { pressed[lane] = true; input(lane); }
       button.setPointerCapture(event.pointerId);
     });
-    const release = () => { pressed[Number(button.dataset.lane)] = false; };
+    const release = () => releaseLane(Number(button.dataset.lane));
     button.addEventListener('pointerup', release); button.addEventListener('pointercancel', release);
   }
   document.addEventListener('visibilitychange', () => { if (document.hidden) pause(); });
@@ -883,7 +1015,8 @@
         sourceWidth: sprite.naturalWidth, sourceHeight: sprite.naturalHeight, sourceRect: [...FRAMES[danceFrame]],
         sourceRects: FRAMES.map(r=>[...r]),
         visible: dancer.style.visibility !== 'hidden' },
-      notes: notes.map(n => ({ lane: n.lane, time: n.time, result: n.result })) }),
+      battle:battle?.snapshot()||null,
+      notes: notes.map(n => ({ lane: n.lane, time: n.time, result: n.result, hold:n.hold||0, event:n.event })) }),
     audioLevel: () => {
       if (!analyser) return 0;
       const data = new Float32Array(analyser.fftSize); analyser.getFloatTimeDomainData(data);

@@ -223,7 +223,20 @@
     ctx.clearRect(0,0,width,height);ctx.drawImage(base,0,0,width,height);
     return{theme:id,center:width*.52,floor,power,...lighting(ctx,o),cachedBase:true};
   }
-  function draw(ctx,image,level,{width,height,beat,progress,amount,mood=2,soft=false,danceImage}){
+  // Lateral travel, lift, lean and squash for ← ↓ ↑ →.
+  const gestures={
+    doces:[[-.06,.015,-.12,.03],[.01,0,.05,.09],[.02,.09,-.03,0],[.07,.045,.13,.025]],
+    brinquedos:[[-.08,.03,-.07,0],[0,0,.11,.12],[0,.1,.08,.025],[.08,.015,.14,.06]],
+    gelo:[[-.07,.008,-.08,.025],[0,0,-.06,.09],[.015,.075,.06,0],[.065,.025,.10,0]],
+    ceu:[[-.07,.04,-.07,0],[.016,0,.04,.05],[0,.115,-.04,0],[.075,.05,.095,0]],
+    deserto:[[-.085,.008,-.12,.035],[0,0,.13,.11],[.025,.075,-.09,.03],[.08,.026,.09,.08]],
+    pantano:[[-.07,.02,-.10,.07],[-.012,0,-.11,.12],[.02,.08,.035,.04],[.065,.02,.13,.08]],
+    nebulosa:[[-.065,.04,-.06,.015],[.015,.01,-.07,.06],[0,.11,.07,.015],[.085,.04,.06,0]],
+    atlanta:[[-.084,.025,-.085,.01],[.02,0,.10,.075],[.015,.08,.08,.025],[.075,.047,.075,.015]],
+    masmorra:[[-.09,.02,-.15,.06],[0,0,.16,.13],[.03,.12,-.13,.025],[.09,.035,.16,.08]],
+    colina:[[-.09,.04,-.15,.025],[.02,0,.12,.125],[.01,.135,-.12,.015],[.092,.061,.15,.045]]
+  };
+  function draw(ctx,image,level,{width,height,beat,progress,amount,mood=2,soft=false,danceImage,lane,gesture=0}){
     const p=pose(level.id,beat,progress,amount),baseRect=level.frames[0];
     // Blend between four steps within the song's meter. All turns pivot at the sole.
     const meter=level.meter, bar=beat/meter, phrase=Math.floor(bar/2);
@@ -235,8 +248,16 @@
     p.lean=clamp(p.lean*.6 + step*amount*.047,-.13,.13);
     p.x=clamp(p.x*.62 + step*amount*.045,-.085,.085);
     p.bend=0;p.step=0;p.leftFoot=0;p.rightFoot=0;p.lift=0;
+    const move=lane==null?null:gestures[level.id][lane];
+    const impulse=move?Math.sin(clamp(gesture)*Math.PI)*Math.min(1,amount+.22):0;
+    if(move&&impulse>0){
+      p.x+=move[0]*impulse;
+      p.lift=move[1]*impulse;
+      p.lean+=move[2]*impulse;
+      p.phrase=definitions[level.id].phrases[lane];
+    }
     const floor=height*.935,center=width*.52+p.x*Math.min(height,width*1.1);
-    const baseScale=Math.min(width*.84/(level.designWidth||440),height*.86/(level.designHeight||552))*(1-amount*pulse*.021);
+    const baseScale=Math.min(width*.84/(level.designWidth||440),height*.86/(level.designHeight||552))*(1-amount*pulse*.021-(move?.[3]||0)*impulse);
     const enthusiasm=soft?0:smooth((amount-.35)/.48);
     const hasDanceImage=!!(danceImage?.complete && danceImage.naturalWidth);
     let frame=0,nextFrame=0,blend=0;
@@ -249,6 +270,7 @@
       nextFrame=1;
       blend=smooth((accent-.65)/.27)*smooth((meter-accent-.45)/.29);
     }
+    if(move&&impulse>.001&&level.frames.length>1){frame=0;nextFrame=[1,4,5,3][lane];blend=impulse;}
     function drawFrame(index,alpha){
       const alternate=index===1 && hasDanceImage;
       const rect=alternate?[0,0,danceImage.naturalWidth,danceImage.naturalHeight]:level.frames[index];
@@ -257,7 +279,7 @@
       const local={...p,groundY:ground[0],contactX:ground[1]};
       const tex=texture(alternate?danceImage:image,rect,index===0?level.face:null,index===0?mood:2,level.id,level.faceClip,index===0?level.mouth:null,index===0?level.tears:null);
       const x=center+(local.contactX-rect[2]*.5)*scale;
-      const model=body(ctx,tex,x,floor,scale,local,alpha);return{...model,scale,groundY:local.groundY,contactX:local.contactX,rect,tex,x};
+      const model=body(ctx,tex,x,floor-p.lift*height,scale,local,alpha);return{...model,scale,groundY:local.groundY,contactX:local.contactX,rect,tex,x};
     }
     const primaryWeight=(1-blend)*enthusiasm;
     const alternateWeight=nextFrame===0?0:blend*enthusiasm;

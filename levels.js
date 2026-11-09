@@ -43,4 +43,13 @@ window.RR_LEVELS=Object.freeze([
  song:'Voo das Pétalas',style:'Rock melódico · arpejos e sinos escarlates',instrument:'petal',background:'assets/colina-v12.png',sprite:'assets/pixel-colina-v12.png',designWidth:1122,designHeight:1402,frames:[[0,0,1122,1402]],groundY:1377,contactX:632,face:[590, 165, 120, 85, 0.25],mouth:[586, 207, 26, 10, 0.22, '#f3cbd0', '#a36b78'],
  colors:['#ff839f','#ffc1df','#ffd290','#b7b8ff'],accent:'#ff8cac',ornament:'❀',track:'Mirante escarlate',panel:['#763651c0','#502c5bc0'],
  melody:[72,76,79,84,79,76,74,72,71,74,77,83,81,77,74,71],bass:[48,43,45,41],minorChord:2,sequence:[2,0,1,3,2,1,0,3,1,0,2,3,0,2,1,3],skipBeat:b=>b%16===15}
-].map((level,index)=>Object.freeze({...level,goal:RR_CAMPAIGN[index].goal,album:`assets/album-${level.id}.svg`,symbol:`assets/symbol-${level.id}.svg`})));
+ ,
+ {id:'fase11', name:'OrbitHop · Endgame', title:'OrbitHop', emphasis:'Endgame',
+  subtitle:'Proteja sua casa. Responda aos golpes no ritmo.', bpm:120, beats:320, meter:4,
+  song:'Órbita em Ruptura', style:'Rock cósmico · sintetizadores e guitarra', instrument:'lava',
+  background:'assets/orbithop-ruinas-v14.png', sprite:'assets/pixel-padrao-v1.png', frames:RR_SPRITES.standard,
+  colors:['#ee80d2','#65d9ff','#c09aff','#ffcf81'], accent:'#e294ff', ornament:'✦', track:'Arena de OrbitHop',
+  panel:['#181329b3','#221336d9'], melody:[66,66,69,73,76,73,69,64,62,66,69,74,76,74,69,66],
+  bass:[42,38,45,40], minorChord:0, sequence:[0,2,1,3,2,0,3,1,2,3,0,1,3,2,1,0],
+  skipBeat:b=>b%8===7, album:'assets/album-colina.svg', symbol:'assets/symbol-colina.svg'}
+].map((level,index)=>Object.freeze({album:`assets/album-${level.id}.svg`,symbol:`assets/symbol-${level.id}.svg`,...level,goal:RR_CAMPAIGN[index].goal})));

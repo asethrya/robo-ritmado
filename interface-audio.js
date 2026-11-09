@@ -1,21 +1,22 @@
 (() => {
   'use strict';
-  let context, menuGain, fxGain, meter, timer, step = 0, next = 0, mode = 'silent', ready = false;
+  let context, menuGain, fxGain, sceneGain, meter, timer, currentScene, step = 0, next = 0, mode = 'silent', ready = false;
   const voices = new Set(), hz = n => 440 * 2 ** ((n - 69) / 12);
   function gains() {
     if (!context) return;
     const s = RR_SETTINGS.get();
     menuGain.gain.setTargetAtTime(s.menuVolume / 100 * .4, context.currentTime, .06);
     fxGain.gain.setTargetAtTime(s.sfxVolume / 100 * .45, context.currentTime, .02);
+    sceneGain.gain.setTargetAtTime(s.musicVolume / 100 * .36, context.currentTime, .06);
   }
   async function unlock() {
     try {
       if (!context || context.state === 'closed') {
         context = new (window.AudioContext || window.webkitAudioContext)();
-        menuGain = context.createGain(); fxGain = context.createGain();
+        menuGain = context.createGain(); fxGain = context.createGain();sceneGain=context.createGain();
         const comp = context.createDynamicsCompressor(); comp.threshold.value = -18; comp.ratio.value = 5;
         meter = context.createAnalyser(); meter.fftSize = 256;
-        menuGain.connect(comp); fxGain.connect(comp); comp.connect(meter); meter.connect(context.destination); gains();
+        menuGain.connect(comp); fxGain.connect(comp);sceneGain.connect(comp); comp.connect(meter); meter.connect(context.destination); gains();
       }
       await context.resume(); ready = context.state === 'running';
       document.dispatchEvent(new CustomEvent('rr-audio-status', { detail: ready }));
@@ -82,9 +83,12 @@
     }
   }
   function scene(motion){
+    if(motion==='credits' && currentScene==='encore' && timer)return;
     silence();
     if(!context||!ready)return;
+    currentScene=motion;
     const now=context.currentTime;
+    sceneMusic(motion);
     if(motion==='show'){
       cheer();
       const buffer=context.createBuffer(1,Math.ceil(context.sampleRate*.075),context.sampleRate);
@@ -104,13 +108,53 @@
     }else if(motion===5){portal(2);note(48,now+1,.35,.05,'sine');}
     else if(motion===6){note(48,now,.22,.09,'sine');note(76,now+.15,.35,.05,'triangle');}
     else if(motion===8)cheer();
-    else if(motion===4)portal(1);
+    else if(motion===4||motion==='cross'||motion==='return')portal(1);
+    else if(motion==='tempus'){
+      [54,61,66,69,73,76,78,81,85,90].forEach((pitch,i)=>note(pitch,now+i*.19,1.05,.10,'triangle'));
+      note(42,now+1.9,2,.14,'sine');portal(1);
+    }
+    else if(motion==='encore'){cheer();portal(1);}
+    else if(['walk','exit','backstage','ruins'].includes(motion)){
+      for(let i=0;i<7;i++)note(41+i%2*3,now+i*.47,.11,.045,'triangle');
+    }
     else [54,61,66].forEach((midi,i)=>note(midi,now+i*.2,2.2,.022,'sine'));
+  }
+  function sceneMusic(motion) {
+    const concert=['encore','credits'].includes(motion),final=['charge','tempus'].includes(motion);
+    const danger=['guitar','surge','levitate','ruins','confront','memory',3].includes(motion);
+    const melody=concert?[74,78,81,86,83,81,78,76,74,81,83,86,88,86,81,78]
+      :final?[66,69,73,76,78,81,85,88,90,88,85,83,81,78,76,73]
+      :danger?[57,61,64,65,61,57,56,53]:motion==='show'?[73,76,80,83,81,80,76,73]:[69,73,76,81,76,73,71,66];
+    const roots=concert?[50,55,47,45]:danger?[41,38,40,37]:[42,38,45,40];
+    const interval=concert?.31:final?.21:motion==='show'?.38:.65;
+    let index=0,time=context.currentTime+.08;
+    mode='scene';
+    function score(){
+      if(document.hidden)return;
+      while(time<context.currentTime+.22){
+        if(time>=context.currentTime){
+          note(melody[index%melody.length],time,interval*1.35,concert?.14:.075,final?'triangle':'sine',sceneGain);
+          if(index%4===0){
+            const root=roots[Math.floor(index/8)%4];
+            for(const pitch of [root,root+12,root+(danger?15:16),root+19])
+              note(pitch,time,interval*4,.043,'sine',sceneGain);
+          }
+        }
+        time+=interval;index++;
+      }
+    }
+    score();timer=setInterval(score,45);
+  }
+  function battleCue(element='pixel'){
+    if(!context||!ready)return;
+    const roots={fire:74,water:66,earth:52,air:81,ice:85,void:44,pixel:73};
+    [0,element==='void'?6:7,12].forEach((n,i)=>note(roots[element]+n,context.currentTime+i*.07,.28,.078,'triangle'));
   }
   function reflectionScore(chapter,line){
     silence();
     if(!context||!ready)return;
     const memory=chapter===10&&line===0;
+    sceneMusic(memory?'memory':'reflection');
     const root=memory?40:chapter===7?53:chapter===10?55:50;
     const intervals=memory?[0,7,13]:chapter===7||chapter===10?[0,7,12,16,19]:[0,7,12,15];
     intervals.forEach((interval,index)=>note(root+interval,context.currentTime+index*.35,4,.025,'sine'));
@@ -121,7 +165,7 @@
   });
   window.addEventListener('rr-settings',gains);
   window.addEventListener('pagehide',()=>{stop(); context?.close();});
-  window.RR_AUDIO = Object.freeze({ unlock, menu, silence, cue, hit, portal, cheer, story, scene, reflectionScore,
+  window.RR_AUDIO = Object.freeze({ unlock, menu, silence, cue, hit, portal, cheer, story, scene, reflectionScore, battleCue,
     snapshot: () => ({ state: context?.state || 'not-started', mode, music: 'Órbita de Casa', bpm: 78,
       menuGain: menuGain?.gain.value || 0, effectsGain: fxGain?.gain.value || 0, voices: voices.size }),
     level: () => { if (!meter) return 0; const d=new Float32Array(meter.fftSize); meter.getFloatTimeDomainData(d); return Math.sqrt(d.reduce((s,v)=>s+v*v,0)/d.length); }

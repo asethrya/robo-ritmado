@@ -1,4 +1,4 @@
-# Robô Ritmado 0.13
+# Robô Ritmado 0.14
 
 Ajude Pixel a tocar e atravessar os dez mundos da aventura musical. Abra **Abrir-jogo.cmd** ou **index.html** no Chrome ou Edge com a pasta `assets` ao lado.
 
@@ -8,7 +8,7 @@ Use **← ↓ ↑ →** ou os botões de toque quando a seta chegar ao alvo. **E
 
 Ao clicar em **Jogar**, acompanhe o fim de um show em OrbitHop, os bastidores e o camarim. Uma manifestação involuntária de energia leva Pixel ao Reino dos Doces. O prólogo tem 14 cenas e preserva as animações de chegada, queda, recuperação e reencontro com a guitarra.
 
-Depois de vencer cada mundo, Pixel compartilha reflexões diferentes antes de abrir voluntariamente o próximo caminho. Apenas o portal inicial e sua saída no Reino dos Doces têm a aparência anômala. A décima vitória revela a lembrança do Devorador de Mundos e a razão da viagem; a batalha de **OrbitHop · Endgame**, fase 11, permanece bloqueada e em desenvolvimento.
+Depois de vencer cada mundo, Pixel compartilha reflexões diferentes antes de abrir voluntariamente o próximo caminho. Apenas o portal inicial e sua saída no Reino dos Doces têm a aparência anômala. A décima vitória revela a lembrança do Devorador de Mundos e a razão da viagem; a batalha de **OrbitHop · Endgame**, fase 11, fecha a jornada.
 
 As falas ficam visíveis por pelo menos sete segundos, com tempo adicional conforme o tamanho do texto. Use **Continuar diálogo**, **Pausar cena** ou **Pular cena** para acompanhar no seu ritmo. As cenas respeitam os ajustes de movimento, sensibilidade visual, legendas e som. O roteiro completo está em [narrative.js](narrative.js).
 
@@ -31,10 +31,10 @@ Ao atingir a meta, termine a música para viajar. Os pontos seguem pelo portal e
 | 09 | Masmorra Ardente | Pulso de Magma | 7.000 | 20.900 |
 | 10 | Colina Escarlate | Voo das Pétalas | 7.500 | 22.900 |
 
-A fase 11 aparece como **bloqueada e em desenvolvimento** ao concluir Colina Escarlate. Use **Revisitar mundos liberados** no aviso de pré-fase para tocar de novo em um mundo que já abriu.
+A vitória na Colina Escarlate libera a fase 11. Defenda OrbitHop com as quatro setas e segure as notas com cauda. Complete os quatro anéis da Sinfonia dos Mundos para assistir ao desfecho. Os golpes e parâmetros estão no [relatório do Endgame](RELATORIO-ENDGAME.md). Use **Revisitar mundos liberados** no aviso de pré-fase para tocar de novo em um mundo que já abriu.
 
 ## Visual e acessibilidade
 
 Os símbolos de cada mundo aparecem na capa da música, no aviso de pré-fase e na animação de Frenesi. Pixel alterna poses no compasso e reage às sequências com movimentos e holofotes mais intensos. Os figurinos usam ilustrações 2D completas com pontos de apoio por pose. Sensibilidade Visual mantém a indicação do Frenesi em texto com efeitos de palco reduzidos.
 
-Menu e Opções permitem rever o aviso e ajustar cores, escalas, legendas, movimento, velocidade e som. O placar continua disponível nos navegadores que permitem armazenamento local. Os relatórios das versões anteriores ficam no repositório para referência.
+Menu e Opções permitem rever o aviso e ajustar cores, escalas, legendas, movimento, velocidade e som. Em Preferências, escolha Modo Escuro e o perfil PC, Celular ou Tablet. Se o navegador bloquear o som automático, a música começa com o primeiro toque ou tecla. O placar continua disponível nos navegadores que permitem armazenamento local. Os relatórios das versões anteriores ficam no repositório para referência.

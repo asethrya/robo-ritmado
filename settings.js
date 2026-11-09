@@ -4,7 +4,8 @@
   const defaults = { musicVolume: 55, sfxVolume: 55, menuVolume: 40, arrowSpeed: 1,
     colorMode: 'off', scaleEnabled: false, uiScale: 1, subtitleScale: 1, arrowScale: 1,
     reduceMotion: systemReduced.matches, danceSpeed: .3, highContrast: false,
-    captions: false, speedEnabled: false, gameSpeed: .8, sensitivity: systemReduced.matches };
+    captions: false, speedEnabled: false, gameSpeed: .8, sensitivity: systemReduced.matches,
+    darkMode: false, device: 'pc', assistTiming: false, shortSequences: false };
   const bounds = { musicVolume: [0,100], sfxVolume: [0,100], menuVolume: [0,100], arrowSpeed: [.55,1.6],
     uiScale: [1,1.4], subtitleScale: [1,1.8], arrowScale: [1,1.4], danceSpeed: [.15,.6], gameSpeed: [.5,1] };
   let saved = {};
@@ -13,6 +14,7 @@
   function normalize(key, val) {
     if (bounds[key]) { const n = Number(val); return Number.isFinite(n) ? Math.max(bounds[key][0], Math.min(bounds[key][1], n)) : defaults[key]; }
     if (key === 'colorMode') return ['off','protanopia','deuteranopia','tritanopia'].includes(val) ? val : 'off';
+    if (key === 'device') return ['pc','mobile','tablet'].includes(val) ? val : 'pc';
     return typeof defaults[key] === 'boolean' ? val === true : defaults[key];
   }
   for (const key of Object.keys(defaults)) if (key in saved) value[key] = normalize(key, saved[key]);
@@ -26,6 +28,8 @@
     b.classList.toggle('high-contrast', value.highContrast);
     b.classList.toggle('has-captions', value.captions);
     b.classList.toggle('large-subtitles', value.scaleEnabled && value.subtitleScale > 1.35);
+    b.classList.toggle('dark-mode',value.darkMode);
+    b.dataset.device=value.device;
     b.dataset.colorMode = value.colorMode;
     root.style.setProperty('--ui-scale', value.scaleEnabled ? value.uiScale : 1);
     root.style.setProperty('--subtitle-scale', value.scaleEnabled ? value.subtitleScale : 1);
@@ -39,6 +43,8 @@
     motion: () => value.sensitivity ? 0 : (value.reduceMotion || systemReduced.matches) ? value.danceSpeed : 1,
     gentle: () => value.sensitivity || value.reduceMotion || systemReduced.matches,
     rate: () => value.speedEnabled ? value.gameSpeed : 1,
+    dpr: () => Math.min(devicePixelRatio || 1,{pc:1.5,tablet:1.25,mobile:1}[value.device]),
+    effects: () => ({pc:1,tablet:.65,mobile:.42}[value.device]),
     apply
   });
   systemReduced.addEventListener('change', apply);

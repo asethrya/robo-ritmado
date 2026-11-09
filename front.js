@@ -16,7 +16,7 @@
       <canvas id="orbitFx" class="orbit-fx" aria-hidden="true"></canvas><canvas id="cinemaCanvas" class="cinema-canvas" role="img" aria-label="A viagem animada de Pixel pelos portais"></canvas>
 
       <div id="menuContent" class="menu-content"><span class="menu-kicker">UMA AVENTURA EM CADA PARTIDA!</span>
-        <h1 class="game-logo" aria-label="Robô Ritmado"><i class="logo-note" aria-hidden="true">♫</i><span class="logo-word logo-robot">Robô</span><span class="logo-word logo-rhythm">Ritmado</span><i class="logo-star" aria-hidden="true">✦</i><span class="logo-decoration" aria-hidden="true">✧　♪　✦　♫　✧</span></h1>
+        <h1 class="game-logo" aria-label="Robô Ritmado"><i class="logo-note" aria-hidden="true">♫</i><span class="logo-word logo-robot">Robô</span><span class="logo-word logo-rhythm">Ritmado</span><i class="logo-star" aria-hidden="true">✦</i><span class="logo-decoration" aria-hidden="true">✧　♪　✦　♫　✧</span><i class="logo-sparkles" aria-hidden="true"><b>✦</b><b>♩</b><b>✦</b><b>♪</b><b>✦</b></i></h1>
         <p class="menu-story">Uma guitarra. Muitos mundos!<br> Vem brincar com <strong>Pixel!</strong></p>
         <nav class="menu-nav" aria-label="Menu principal">
           <button id="menuPlay" class="orbit-button play" data-cue="play"><span class="button-icon" aria-hidden="true">▷</span>Jogar<span class="button-arrow" aria-hidden="true">↗</span></button>
@@ -32,7 +32,7 @@
       <div id="pixelGreeting" class="pixel-greeting"><b>Oi, eu sou Pixel!</b><br>Bora fazer uma música e viajar pelas estrelas?</div><button id="sayHello" class="say-hello" data-cue="tutorial">Oi, Pixel! ♡</button><div id="loadingTrip" class="toast" role="status" hidden>✦ Preparando nossa viagem…</div><div id="pixelName" class="pixel-name"><i></i><div>PIXEL<small>SOM QUE CONECTA MUNDOS</small></div></div>
       <div id="cinemaUI" class="cinema-ui" hidden>
         <div class="cinema-top"><div class="cinema-place"><span id="sceneNumber">PRÓLOGO / 01</span><h2 id="scenePlace">OrbitHop, lar de Pixel</h2></div><div class="view-toolbar"><button id="pauseCinema" class="quiet-button" data-cue="options">Pausar cena</button><button id="skipCinema" class="quiet-button" data-cue="back">Pular introdução</button></div></div>
-        <div class="cinema-bottom"><p id="storyAction" class="story-action"></p><div id="storyCaption" class="story-subtitle" role="status" aria-live="polite"></div><div id="storyProgress" class="cinema-progress" aria-hidden="true"></div><div class="cinema-controls"><button id="nextCinema" class="quiet-button" data-cue="play">Avançar cena →</button></div></div>
+        <div class="cinema-bottom"><p id="storyAction" class="story-action"></p><div id="storyCaption" class="story-subtitle" role="status" aria-live="polite"></div><div id="storyProgress" class="cinema-progress" aria-hidden="true"></div><div class="cinema-controls"><button id="backCinema" class="quiet-button" data-cue="back" disabled>← Voltar</button><button id="nextCinema" class="quiet-button" data-cue="play">Avançar cena →</button></div></div>
       </div>
       <section id="tutorialUI" class="tutorial-ui" hidden aria-label="Tutorial guiado por Pixel">
         <div class="tutorial-toolbar"><h2>Ensaio com Pixel</h2><button id="leaveTutorial" class="quiet-button" data-cue="back">Voltar ao menu</button></div>
@@ -47,9 +47,11 @@
     </section><div id="gameCaption" class="game-caption" role="status" aria-live="polite" hidden><span id="captionApproach"></span><span id="captionResult"></span></div>
   `);
   document.body.insertAdjacentHTML('beforeend', `
+    <button id="menuFullscreen" class="quiet-button quick-fullscreen" aria-label="Alternar tela cheia" data-cue="options">⛶ Tela cheia</button>
     <dialog id="safetyDialog" class="safety-dialog" aria-labelledby="safetyTitle" aria-describedby="safetyCopy safetyRisk">
+      <button id="welcomeFullscreen" class="quiet-button quick-fullscreen" aria-label="Alternar tela cheia" data-cue="options">⛶ Tela cheia</button>
       <div class="welcome-portrait"><img src="assets/pixel-boas-vindas-v11.png" alt="Pixel no traje padrão, de braços acolhedores"></div>
-      <div class="safety-body"><span class="dialog-kicker">UM ABRAÇO ANTES DA AVENTURA</span><h2 id="safetyTitle">Seu ritmo cabe aqui<span class="welcome-bang">!</span></h2><p class="safety-welcome">Olá, aspirante! Eu sou Pixel. ♡</p>
+      <div class="safety-body"><span class="dialog-kicker">Mas antes de qualquer coisa, um abraço antes da aventura...</span><h2 id="safetyTitle">Seu ritmo cabe aqui<span class="welcome-bang">!</span></h2><p class="safety-welcome">Olá, aspirante! Eu sou Pixel. ♡</p>
       <p id="safetyCopy">Se você possui alguma deficiência ou necessidade singular, visite <strong>Acessibilidade</strong> antes da jornada. Vamos ajustar o jogo ao seu jeito?</p>
       <div class="welcome-features"><span>◈ Cores e leitura</span><span>♪ Movimento e ritmo</span><span>☏ Legendas e tempo</span></div>
       <p id="safetyRisk" class="welcome-warning"><strong>Cuidado com as luzes:</strong> o jogo contém luzes, animações e efeitos visuais que podem causar desconforto ou desencadear crises em pessoas fotossensíveis. Antes de jogar, ajuste os estímulos, o movimento e a velocidade às suas necessidades.</p>
@@ -59,8 +61,9 @@
     </dialog>
     <dialog id="settingsDialog" class="settings-dialog" aria-labelledby="settingsTitle">
       <div class="dialog-header"><div><span class="dialog-kicker">NO SEU RITMO</span><h2 id="settingsTitle">Configurações</h2></div><button id="closeSettings" class="close-icon" data-cue="back" aria-label="Fechar configurações">×</button></div>
-      <div class="settings-tabs" role="tablist" aria-label="Configurações"><button id="optionsTab" role="tab" aria-selected="true" aria-controls="optionsPanel" data-cue="options">Opções</button><button id="accessibilityTab" role="tab" aria-selected="false" aria-controls="accessibilityPanel" data-cue="accessibility">Acessibilidade</button></div>
-      <div class="settings-content"><div id="optionsPanel" role="tabpanel" aria-labelledby="optionsTab"></div><div id="accessibilityPanel" role="tabpanel" aria-labelledby="accessibilityTab" hidden></div></div>
+      <div class="settings-tabs" role="tablist" aria-label="Configurações"><button id="optionsTab" role="tab" aria-selected="true" aria-controls="optionsPanel" data-cue="options">Opções</button><button id="accessibilityTab" role="tab" aria-selected="false" aria-controls="accessibilityPanel" data-cue="accessibility">Acessibilidade</button><button id="preferencesTab" role="tab" aria-selected="false" aria-controls="preferencesPanel" data-cue="options">Preferências</button></div>
+      <div class="settings-content"><div id="optionsPanel" role="tabpanel" aria-labelledby="optionsTab"></div><div id="accessibilityPanel" role="tabpanel" aria-labelledby="accessibilityTab" hidden></div><div id="preferencesPanel" role="tabpanel" aria-labelledby="preferencesTab" hidden>
+      </div></div>
       <div class="settings-footer"><small>Alterações salvas automaticamente neste navegador.</small><button id="reviewSafety" class="quiet-button" data-cue="accessibility">Rever aviso</button><button id="doneSettings" class="quiet-button" data-cue="back">Concluir</button></div>
     </dialog><div id="shellToast" class="toast" role="status" aria-live="polite" hidden></div>
   `);
@@ -75,6 +78,13 @@
     + toggle('captions','Legendas Descritivas','Mostra a direção da próxima seta, sua aproximação, o momento de tocar, os resultados e a pontuação. As falas da história e do tutorial estão sempre visíveis.')
     + toggle('speedEnabled','Ajuste de Velocidade do Jogo','Desacelera música, setas e janelas de acerto juntas para ampliar o tempo de reação.', `<div id="speedControls" class="setting-sub">${subSlider('gameSpeed','Velocidade da partida',.5,1,.05)}</div>`)
     + toggle('sensitivity','Sensibilidade Visual','Reduz brilho e saturação, remove flashes decorativos, partículas e rastros, e deixa Pixel estável. Aplica-se ao menu, cenas, tutorial e fases. Não elimina todos os riscos de fotossensibilidade.');
+  $('accessibilityPanel').insertAdjacentHTML('beforeend',
+    toggle('assistTiming','Mais tempo para reagir','Amplia a janela das notas especiais.')
+    + toggle('shortSequences','Sequências mais curtas','Encurta desafios longos na próxima batalha.'));
+  $('preferencesPanel').innerHTML=toggle('darkMode','Modo Escuro','Escurece o fundo e os painéis.')
+    + '<div class="setting-row device-setting"><label for="set-device">Dispositivo</label><select id="set-device" data-setting="device"><option value="pc">PC (Computador)</option><option value="mobile">Celular/Smartphone</option><option value="tablet">Tablet</option></select><p>Adapta os controles e a qualidade dos efeitos.</p></div>';
+  document.body.insertAdjacentHTML('beforeend','<dialog id="rotateDialog" class="rotate-dialog" aria-labelledby="rotateTitle"><div class="rotate-icon" aria-hidden="true">▯ ↻ ▭</div><h2 id="rotateTitle">Vire a tela para jogar</h2><p>Na horizontal, você vê as setas e os personagens com mais espaço.</p><button id="closeRotate" class="quiet-button" data-cue="back">Entendi</button></dialog>');
+  for(const word of document.querySelectorAll('.game-logo .logo-word')) word.dataset.text=word.textContent;
   const appActions = document.createElement('div'); appActions.className = 'game-settings';
   appActions.innerHTML = '<button id="gameMenu" class="quiet-button" data-cue="back" aria-label="Pausar e voltar ao menu">☰ <span class="settings-label">Menu</span></button><button id="gameAccessibility" class="quiet-button" data-cue="accessibility" aria-label="Abrir Acessibilidade">◎</button>';
   document.querySelector('.top-actions').prepend(appActions);
@@ -91,6 +101,7 @@
     $('sceneShell').setAttribute('aria-label',name==='cutscene'?'Prólogo animado: a viagem de Pixel':name==='tutorial'?'Tutorial em OrbitHop com Pixel':'Menu principal de Robô Ritmado em OrbitHop');
     document.querySelector('.app').inert=name!=='game';
     $('menuContent').hidden=name!=='menu'; $('cinemaUI').hidden=name!=='cutscene'; $('tutorialUI').hidden=name!=='tutorial';
+    $('menuFullscreen').hidden=name!=='menu';
     $('pixelName').hidden=name!=='menu'; $('portalScene').hidden=name!=='cutscene';
     $('sceneShell').removeAttribute('data-shot'); if(name!=='cutscene')$('sceneShell').removeAttribute('data-story-world');
     $('pixelGreeting').hidden=name!=='menu';$('sayHello').hidden=name!=='menu';
@@ -107,12 +118,13 @@
     lastFocused=document.activeElement; syncSettings(); selectTab(tab);
     document.body.classList.add('settings-open');
     if(!$('settingsDialog').open) $('settingsDialog').showModal();
-    $(tab==='accessibility'?'accessibilityTab':'optionsTab').focus();
+    $(tab+'Tab').focus();
   }
   function closeSettings() { $('settingsDialog').close(); document.body.classList.remove('settings-open'); if(lastFocused?.isConnected) lastFocused.focus({preventScroll:true}); }
+  const tabs=['options','accessibility','preferences'];
   function selectTab(tab) {
-    for(const key of ['options','accessibility']) { const active=key===tab; $(key+'Panel').hidden=!active; $(key+'Tab').setAttribute('aria-selected',String(active)); $(key+'Tab').tabIndex=active?0:-1; }
-    $('settingsTitle').textContent=tab==='options'?'Opções':'Acessibilidade';
+    for(const key of tabs) { const active=key===tab; $(key+'Panel').hidden=!active; $(key+'Tab').setAttribute('aria-selected',String(active)); $(key+'Tab').tabIndex=active?0:-1; }
+    $('settingsTitle').textContent=$(tab+'Tab').textContent;
   }
   function syncSettings() {
     const s=RR_SETTINGS.get();
@@ -130,13 +142,23 @@
     const key=input.dataset.setting;
     if(key==='colorEnabled') RR_SETTINGS.set('colorMode',input.checked?lastColor:'off');
     else {if(key==='colorMode') lastColor=input.value; RR_SETTINGS.set(key,input.type==='checkbox'?input.checked:input.value);}
+    if(key==='device' && input.value!=='pc' && !$('rotateDialog').open) $('rotateDialog').showModal();
     if(input.type==='checkbox'||input.tagName==='SELECT')syncSettings();else{const out=$('out-'+key);if(out)out.textContent=(key.endsWith('Volume')?Math.round(Number(input.value)):Math.round(Number(input.value)*100))+'%';}
   });
-  $('optionsTab').onclick=()=>selectTab('options'); $('accessibilityTab').onclick=()=>selectTab('accessibility');
-  for(const tab of [$('optionsTab'),$('accessibilityTab')]) tab.addEventListener('keydown',e=>{if(['ArrowLeft','ArrowRight','Home','End'].includes(e.key)){e.preventDefault(); const name=tab.id==='optionsTab'?'accessibility':'options'; selectTab(name); $(name+'Tab').focus();}});
+  for (const [index,name] of tabs.entries()) {
+    const tab=$(name+'Tab');
+    tab.onclick=()=>selectTab(name);
+    tab.addEventListener('keydown',event=>{
+      const next={ArrowLeft:(index+2)%3,ArrowRight:(index+1)%3,Home:0,End:2}[event.key];
+      if(next==null)return;
+      event.preventDefault();selectTab(tabs[next]);$(tabs[next]+'Tab').focus();
+    });
+  }
+  $('closeRotate').onclick=()=>$('rotateDialog').close();
+  for(const id of ['menuFullscreen','welcomeFullscreen']) $(id).onclick=()=>$('fullscreen').click();
   $('closeSettings').onclick=closeSettings; $('doneSettings').onclick=closeSettings;
   $('settingsDialog').addEventListener('cancel',()=>{document.body.classList.remove('settings-open');setTimeout(()=>lastFocused?.focus({preventScroll:true}),0);});
-  $('reviewSafety').onclick=()=>{closeSettings();document.body.classList.add('warning-pending');RR_AUDIO.silence();$('safetyDialog').showModal();};
+  $('reviewSafety').onclick=()=>{closeSettings();document.body.classList.add('warning-pending');RR_AUDIO.menu();$('safetyDialog').showModal();};
   $('safetyAccessibility').onclick=()=>{dismissWarning();openSettings('accessibility');}; $('closeSafety').onclick=dismissWarning;
   $('safetyDialog').addEventListener('cancel',e=>{e.preventDefault();dismissWarning();});
   for(const b of document.querySelectorAll('[data-return-menu]'))b.onclick=returnMenu;
@@ -163,7 +185,8 @@
     const [speaker,text]=lines[index],bubble=$('storyCaption');bubble.dataset.speaker=speaker;bubble.replaceChildren();
     const b=document.createElement('b');b.textContent=(speaker==='PIXEL'?'✦ ':'♫ ')+speaker;bubble.append(b,document.createTextNode(text));
     bubble.classList.remove('changed');void bubble.offsetWidth;bubble.classList.add('changed');
-    $('nextCinema').textContent=index<lines.length-1?'Continuar diálogo →':shot===shots.length-1?'Vamos tocar! →':'Próxima cena →';
+    $('nextCinema').textContent=shot===shots.length-1&&index===lines.length-1?'Vamos tocar! →':'Avançar →';
+    $('backCinema').disabled=shot===0&&index===0;
   }
   function renderShot(){
     $('sceneShell').dataset.shot=shot;$('sceneShell').dataset.storyWorld=shots[shot].world;
@@ -171,7 +194,7 @@
     $('storyAction').textContent=shots[shot].action;
     $('storyProgress').innerHTML=shots.map((_,i)=>'<span class="'+(i<=shot?'active':'')+'"></span>').join('');
     $('nextCinema').textContent=shot===shots.length-1?'Vamos tocar! →':'E depois? →';
-    $('cinemaCanvas').setAttribute('aria-label',shots[shot].action);speechKey='';renderSpeech();RR_AUDIO.scene(shots[shot].motion);
+    $('cinemaCanvas').setAttribute('aria-label',shots[shot].action);speechKey='';renderSpeech();if(!cinemaPaused)RR_AUDIO.scene(shots[shot].motion);
   }
   async function startCinema(){
     if(cinemaStarting)return;cinemaStarting=true;$('menuPlay').disabled=true;$('tutorialPlay').disabled=true;$('loadingTrip').hidden=false;
@@ -192,6 +215,11 @@
     else nextShot();
   }
   $('menuPlay').onclick=startCinema; $('nextCinema').onclick=advanceDialogue; $('skipCinema').onclick=enterAdventure;
+  $('backCinema').onclick=()=>{
+    const index=Number(speechKey.split(':')[1]);
+    if(index>0){shotElapsed=shots[shot].lines[index-1][2];renderSpeech();}
+    else if(shot>0){shot--;shotElapsed=shots[shot].lines.at(-1)[2];renderShot();}
+  };
   $('pauseCinema').onclick=()=>{cinemaPaused=!cinemaPaused;$('sceneShell').classList.toggle('cinema-paused',cinemaPaused);if(cinemaPaused)RR_AUDIO.silence();else RR_AUDIO.scene(shots[shot].motion);$('pauseCinema').textContent=cinemaPaused?'Continuar cena':'Pausar cena';};
 
   // Learning progresses on successful input, rather than on elapsed time.
@@ -249,7 +277,7 @@
   const menuStage=$('menuStage'),menuStageCtx=menuStage.getContext('2d'),menuStageAsset=RR_SPRITES.load('assets/palco-orbithop-v09.png');
   let menuActorBox={x:0,y:0,w:1,h:1};
   function paintMenuStage(){
-    const [w,h]=dims.get(actorCanvas)||[1,1],d=Math.min(devicePixelRatio||1,1.5);menuStage.width=Math.round(w*d);menuStage.height=Math.round((h+120)*d);menuStageCtx.setTransform(d,0,0,d,0,0);menuStageCtx.clearRect(0,0,w,h+120);
+    const [w,h]=dims.get(actorCanvas)||[1,1],d=RR_SETTINGS.dpr();menuStage.width=Math.round(w*d);menuStage.height=Math.round((h+120)*d);menuStageCtx.setTransform(d,0,0,d,0,0);menuStageCtx.clearRect(0,0,w,h+120);
     if(menuStageAsset.image.complete&&menuStageAsset.image.naturalWidth){const size=Math.min(w*.98,h*.84/.755);menuStageCtx.drawImage(menuStageAsset.image,w*.51-size*.5,h*.86-size*.755,size,size);}
   }
   menuStageAsset.ready.then(paintMenuStage).catch(()=>{});
@@ -325,5 +353,14 @@
   window.RR_FRONT=Object.freeze({snapshot:()=>({screen:currentScreen,cinema:cinema.snapshot(),shotCount:shots.length,warning:$('safetyDialog').open,settings:$('settingsDialog').open,shot,shotElapsed,cinemaPaused,lesson,lessonElapsed,tutorialHits,tutorialScore,tutorialNote:tutorialNote?{...tutorialNote}:null,actorTime,actorReady:actorImage.complete&&actorImage.naturalWidth>0,settingsValue:RR_SETTINGS.get(),audio:RR_AUDIO.snapshot()})});
   window.addEventListener('rr-settings',()=>{document.body.classList.toggle('interface-enlarged',RR_SETTINGS.get().scaleEnabled&&RR_SETTINGS.get().uiScale>1.1);$('gameCaption').hidden=currentScreen!=='game'||!RR_SETTINGS.get().captions;});
   screen('menu');RR_AUDIO.silence();syncSettings();RR_SETTINGS.apply();
-  $('safetyDialog').showModal();requestAnimationFrame(frame);
+  $('safetyDialog').showModal();
+  RR_AUDIO.menu();
+  function unlockOnGesture(){
+    if(currentScreen==='menu')RR_AUDIO.menu();
+    document.removeEventListener('pointerdown',unlockOnGesture,true);
+    document.removeEventListener('keydown',unlockOnGesture,true);
+  }
+  document.addEventListener('pointerdown',unlockOnGesture,true);
+  document.addEventListener('keydown',unlockOnGesture,true);
+  requestAnimationFrame(frame);
 })();

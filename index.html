@@ -4,33 +4,36 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#150f2e">
-  <meta name="description" content="Robô Ritmado: ajude Pixel a viajar por dez mundos temáticos em uma aventura musical.">
+  <meta name="description" content="Robô Ritmado: ajude Pixel a viajar por dez mundos até a batalha final em OrbitHop.">
   <title>Robô Ritmado • A aventura de Pixel</title>
-  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg?v=0.13">
-  <link rel="stylesheet" href="stage.css?v=0.13">
-  <link rel="stylesheet" href="worlds.css?v=0.13">
-  <link rel="stylesheet" href="front.css?v=0.13">
-  <link rel="stylesheet" href="playful.css?v=0.13">
-  <script src="settings.js?v=0.13" defer></script>
-  <script src="interface-audio.js?v=0.13" defer></script>
-  <script src="sprite-assets.js?v=0.13" defer></script>
-  <link rel="stylesheet" href="wonder.css?v=0.13">
-  <link rel="stylesheet" href="performance.css?v=0.13">
-  <link rel="stylesheet" href="encore.css?v=0.13">
-  <link rel="stylesheet" href="adventure.css?v=0.13">
-  <link rel="stylesheet" href="journey.css?v=0.13">
-  <link rel="stylesheet" href="encounter.css?v=0.13">
-  <link rel="stylesheet" href="story.css?v=0.13">
-  <script src="performance.js?v=0.13" defer></script>
-  <script src="campaign.js?v=0.13" defer></script>
-  <script src="levels.js?v=0.13" defer></script>
-  <script src="narrative.js?v=0.13" defer></script>
-  <script src="portal.js?v=0.13" defer></script>
-  <script src="reflection.js?v=0.13" defer></script>
-  <script src="travel.js?v=0.13" defer></script>
-  <script src="game.js?v=0.13" defer></script>
-  <script src="cinematic.js?v=0.13" defer></script>
-  <script src="front.js?v=0.13" defer></script>
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg?v=0.14">
+  <link rel="stylesheet" href="stage.css?v=0.14">
+  <link rel="stylesheet" href="worlds.css?v=0.14">
+  <link rel="stylesheet" href="front.css?v=0.14">
+  <link rel="stylesheet" href="playful.css?v=0.14">
+  <script src="settings.js?v=0.14" defer></script>
+  <script src="interface-audio.js?v=0.14" defer></script>
+  <script src="sprite-assets.js?v=0.14" defer></script>
+  <link rel="stylesheet" href="wonder.css?v=0.14">
+  <link rel="stylesheet" href="performance.css?v=0.14">
+  <link rel="stylesheet" href="encore.css?v=0.14">
+  <link rel="stylesheet" href="adventure.css?v=0.14">
+  <link rel="stylesheet" href="journey.css?v=0.14">
+  <link rel="stylesheet" href="encounter.css?v=0.14">
+  <link rel="stylesheet" href="story.css?v=0.14">
+  <link rel="stylesheet" href="finale.css?v=0.14">
+  <script src="performance.js?v=0.14" defer></script>
+  <script src="campaign.js?v=0.14" defer></script>
+  <script src="levels.js?v=0.14" defer></script>
+  <script src="narrative.js?v=0.14" defer></script>
+  <script src="portal.js?v=0.14" defer></script>
+  <script src="reflection.js?v=0.14" defer></script>
+  <script src="travel.js?v=0.14" defer></script>
+  <script src="battle.js?v=0.14" defer></script>
+  <script src="finale.js?v=0.14" defer></script>
+  <script src="game.js?v=0.14" defer></script>
+  <script src="cinematic.js?v=0.14" defer></script>
+  <script src="front.js?v=0.14" defer></script>
 </head>
 <body data-theme="doces" data-screen="menu" class="warning-pending">
   <div class="world" aria-hidden="true"></div>
@@ -45,6 +48,11 @@
     <main>
       <section class="stage" aria-label="Jogo de ritmo no Reino dos Doces">
         <div class="stage-top">
+          <div id="battleHUD" class="battle-hud" hidden>
+            <label>Pixel <output id="pixelLife">100 / 100</output><meter id="pixelMeter" min="0" max="100" value="100"></meter></label>
+            <div id="battleCue" role="status" aria-live="polite"></div>
+            <label>Galactus <output id="bossLife">150 / 150</output><meter id="bossMeter" min="0" max="150" value="150"></meter></label>
+          </div>
 
 
           <div class="scoreboard" aria-label="Placar">
@@ -55,6 +63,7 @@
         </div>
 
         <div class="play-space">
+          <canvas id="battleArt" class="battle-art" aria-hidden="true" hidden></canvas>
           <div class="track-shell" id="trackShell">
             <div id="trackBackdrop" class="track-backdrop" aria-hidden="true"></div>
             <div class="track-crown" aria-hidden="true"><span>♡</span><b>♪</b><span>♡</span></div><div class="track-meta"><span><i></i> <span id="trackName">PISTA DE CRISTAL</span></span><span id="tempoLabel">90 BPM · FÁCIL</span></div>
@@ -89,9 +98,20 @@
       </section>
       <div class="touch-controls" aria-label="Setas para jogar com toque"><button data-lane="0" aria-label="Esquerda">←</button><button data-lane="1" aria-label="Baixo">↓</button><button data-lane="2" aria-label="Cima">↑</button><button data-lane="3" aria-label="Direita">→</button></div>
     </main>
-    <footer><span>♪ OUÇA. BRINQUE. BRILHE.</span><span>VERSÃO 0.13 <b>•</b> DEZ MUNDOS</span></footer>
+    <footer><span>♪ OUÇA. BRINQUE. BRILHE.</span><span>VERSÃO 0.14 <b>•</b> ONZE FASES</span></footer>
   </div>
-  <dialog id="travelOverlay" class="travel-overlay" aria-label="Viagem entre mundos"><canvas id="travelCanvas" aria-label="Pixel abre o portal com a guitarra e viaja com coragem"></canvas><div class="travel-controls"><button id="pauseTravel" class="quiet-button">Pausar cena</button><button id="nextTravel" class="quiet-button">Continuar diálogo →</button><button id="skipTravel" class="quiet-button">Pular cena →</button></div><div class="travel-caption"><span class="pill">O RITMO ABRE CAMINHOS</span><h2 id="travelDestination"></h2><p id="travelStatus" role="status" aria-live="polite"></p><p id="travelAction" class="travel-action"></p><small id="travelSummary"></small></div><button id="retryTravel" class="primary-button" hidden>Tentar abrir o portal novamente</button></dialog>
+  <dialog id="travelOverlay" class="travel-overlay" aria-label="A jornada de Pixel">
+    <canvas id="travelCanvas" aria-hidden="true"></canvas>
+    <div class="travel-controls"><button id="backTravel" class="quiet-button">← Voltar</button><button id="pauseTravel" class="quiet-button">Pausar cena</button><button id="nextTravel" class="quiet-button">Avançar →</button><button id="skipTravel" class="quiet-button">Pular cena</button></div>
+    <div id="finalCredits" class="final-credits" hidden>
+      <div><h2>Robô Ritmado</h2><p>Agradecimento especial</p><strong>Professor Peterson Lobato</strong>
+      <p>Equipe</p><strong>Ísis Maria Teles de Oliveira<br>Fernanda da Silva Bispo<br>Luis Fabiano Moreira Teles</strong>
+      <p>Músicas originais geradas para o jogo</p><strong>Órbita de Casa · Doce Travessia · Desfile dos Brinquedos<br>Valsa dos Cristais · Órbita das Nuvens · Sol em Movimento<br>Balanço das Raízes · Vaga-lumes em Órbita · Maré de Cristais<br>Pulso de Magma · Voo das Pétalas<br>Órbita em Ruptura · Tempus Infinitum · Estrelas de Casa</strong>
+      <p>Referências visuais</p><strong>America Chavez · Marvel<br>Max Mayfield · Stranger Things<br>Galactus · Marvel</strong></div>
+    </div>
+    <div class="travel-caption"><span class="pill">O RITMO ABRE CAMINHOS</span><h2 id="travelDestination"></h2><p id="travelStatus" role="status" aria-live="polite"></p><p id="travelAction" class="travel-action"></p><small id="travelSummary"></small></div>
+    <button id="retryTravel" class="primary-button" hidden>Tentar abrir o portal novamente</button>
+  </dialog>
 <dialog id="phaseDialog" class="game-dialog phase-dialog" aria-labelledby="levelTitle"><div id="intro" class="overlay intro">
               <div id="phaseFlurries" class="phase-flurries" aria-hidden="true"></div><div class="phase-cover"><img id="phaseAlbum" src="assets/album-doces.svg" alt=""></div>          <div class="chapter"><span id="chapterLabel" class="eyebrow">FASE 01 · PRIMEIRA PARADA</span><h1><span id="levelTitle">Reino dos</span> <em id="levelEm">Doces</em></h1><p id="levelSubtitle">Doces, cristais e uma batida que abre caminhos.</p></div>
               <h2 id="introTitle" class="phase-invitation">O caminho de casa<br>começa no <em>ritmo.</em></h2>
@@ -114,7 +134,7 @@
               <div class="result-grid"><div><b id="resultPerfect">0</b><span>No ritmo!</span></div><div><b id="resultGood">0</b><span>Muito bem!</span></div><div><b id="resultNear">0</b><span>Quase!</span></div><div><b id="resultMiss">0</b><span>Próxima!</span></div></div>
               <div class="result-detail" id="resultDetail"></div>
               <button id="nextStage" class="primary-button portal-button" hidden>Entrar em Brinquedolândia <span>✦</span></button>
-              <button id="lastStory" class="primary-button" hidden>O que Pixel descobriu? <span>✦</span></button><p id="lockedJourney" class="locked-journey" hidden><strong>🔒 Fase 11 · Endgame em desenvolvimento</strong><br>A batalha por OrbitHop será a próxima parte da jornada. Esta fase continua bloqueada.</p><button id="playAgain" class="primary-button">Tocar de novo <span>↻</span></button>
+              <button id="lastStory" class="primary-button" hidden>Rever o desfecho <span>✦</span></button><button id="playAgain" class="primary-button">Tocar de novo <span>↻</span></button>
               <button class="text-button" data-return-menu>Voltar ao menu</button><span id="resultHint" class="intro-detail">Complete a música para seguir viagem.</span>
             </div></dialog>
   <div id="announcer" class="sr-only" role="status" aria-live="polite"></div>

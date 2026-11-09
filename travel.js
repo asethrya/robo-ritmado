@@ -4,16 +4,18 @@
  function create(canvas){
   const ctx=canvas.getContext('2d'),stageCanvas=document.createElement('canvas'),stageContext=stageCanvas.getContext('2d');let width=1440,height=900,dpr=1,from=null,to=null,time=0,total=12,active=false,paused=false,last=0,resolve=null,pendingSkip=false,model={},lineKey='',lineElapsed=0;
   const label=document.getElementById('travelStatus'),pauseButton=document.getElementById('pauseTravel');
-  new ResizeObserver(()=>{const b=canvas.getBoundingClientRect();width=Math.max(1,b.width);height=Math.max(1,b.height);dpr=Math.min(devicePixelRatio||1,1.5);canvas.width=Math.round(width*dpr);canvas.height=Math.round(height*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);}).observe(canvas);
+  new ResizeObserver(()=>{const b=canvas.getBoundingClientRect();width=Math.max(1,b.width);height=Math.max(1,b.height);dpr=RR_SETTINGS.dpr();canvas.width=Math.round(width*dpr);canvas.height=Math.round(height*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);}).observe(canvas);
   function cover(image,alpha=1){const k=Math.max(width/image.naturalWidth,height/image.naturalHeight);ctx.save();ctx.globalAlpha=alpha;ctx.drawImage(image,(width-image.naturalWidth*k)/2,(height-image.naturalHeight*k)/2,image.naturalWidth*k,image.naturalHeight*k);ctx.restore();}
   function actor(world,x,floor,H,alpha=1,walk=0){
    const r=world.level.frames[0],k=H/r[3],gy=world.level.groundY||r[3],bob=RR_SETTINGS.gentle()?0:Math.sin(walk*Math.PI*2)**2*3.5;
-   ctx.save();ctx.globalAlpha=alpha;ctx.translate(x,floor-bob);ctx.rotate(RR_SETTINGS.gentle()?0:Math.sin(walk*Math.PI*2)*.009);ctx.drawImage(world.sprite,...r,-r[2]*k/2,-gy*k,r[2]*k,r[3]*k);ctx.restore();
+   ctx.save();ctx.globalAlpha=alpha;ctx.translate(x,floor-bob);ctx.rotate(RR_SETTINGS.gentle()?0:Math.sin(walk*Math.PI*2)*.009);if(time<8.4)ctx.scale(-1,1);ctx.drawImage(world.sprite,...r,-r[2]*k/2,-gy*k,r[2]*k,r[3]*k);ctx.restore();
   }
   function stage(world,floor,center){const w=width*(width<700?.94:.58),x=center-w*.52;if(stageCanvas.width!==Math.ceil(w)||stageCanvas.height!==Math.ceil(height)){stageCanvas.width=Math.ceil(w);stageCanvas.height=Math.ceil(height);}RR_PERFORMANCE.platform(stageContext,{width:w,height:height,floor,x:w*.52,id:world.level.id,colors:world.level.colors,accent:world.level.accent,power:1,beat:RR_SETTINGS.gentle()?0:time*.45,soft:RR_SETTINGS.gentle(),still:RR_SETTINGS.gentle()});ctx.drawImage(stageCanvas,x,0,w,height);}
   function caption(key,text){
    if(lineKey===key)return;
    lineKey=key;lineElapsed=0;label.textContent=text;
+   document.getElementById('backTravel').disabled=key==='channel';
+   if(!paused)RR_AUDIO.scene(key==='arrive'||key==='landed'?'reflection':'cross');
    document.getElementById('travelAction').textContent={channel:'Pixel canaliza sua energia pela guitarra.',open:'Um portal estável se abre diante do palco.',walk:'Pixel caminha voluntariamente em direção ao portal.',enter:'Pixel atravessa o caminho entre mundos.',arrive:'Pixel sai com seu novo outfit, ao lado do próximo palco.',landed:'O portal se fecha suavemente atrás de Pixel.'}[key]||'';
   }
   function draw(){
@@ -59,7 +61,8 @@
   return Object.freeze({
    play(a,b){from=a;to=b;time=0;total=b?12:8.4;lineKey='';lineElapsed=0;document.getElementById('travelOverlay').dataset.memory='false';document.getElementById('nextTravel').textContent='Continuar cena →';paused=false;active=true;pauseButton.textContent='Pausar cena';last=performance.now();return new Promise(done=>{resolve=done;draw();if(pendingSkip){pendingSkip=false;time=total;end();}else requestAnimationFrame(tick);});},
    advance(){if(!active)return;time=[2.7,4.4,6.8,8.4,10.8,12].find(boundary=>boundary>time+.00002)||total;if(time>=total)end();else draw();},
-   toggle(){if(!active)return;paused=!paused;pauseButton.textContent=paused?'Continuar cena':'Pausar cena';},
+   back(){if(!active)return;const starts={channel:0,open:0,'walk-in':2.7,enter:4.4,'walk-out':6.8,landed:8.4};time=starts[model.phase];draw();},
+   toggle(){if(!active)return;paused=!paused;pauseButton.textContent=paused?'Continuar cena':'Pausar cena';if(paused)RR_AUDIO.silence();else RR_AUDIO.scene('cross');},
    finish(){if(!active){pendingSkip=true;return;}time=total;draw();end();},
    snapshot:()=>({...model,active,paused})
   });

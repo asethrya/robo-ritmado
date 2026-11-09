@@ -19,12 +19,13 @@
       document.getElementById('nextTravel').textContent = line < chapter.lines.length - 1
         ? 'Continuar diálogo →' : chapter.chapter === 10 ? 'Voltar ao resultado →' : 'Abrir o próximo caminho →';
       document.getElementById('travelOverlay').dataset.memory = String(chapter.memory && line === 0);
-      RR_AUDIO.reflectionScore(chapter.chapter,line);
+      document.getElementById('backTravel').disabled = line===0;
+      if(!paused)RR_AUDIO.reflectionScore(chapter.chapter,line);
     }
 
     function draw() {
       const box = canvas.getBoundingClientRect(), width = box.width, height = box.height;
-      const dpr = Math.min(devicePixelRatio || 1, 1.5);
+      const dpr = RR_SETTINGS.dpr();
       const mobile = width < 700, gentle = RR_SETTINGS.gentle();
       if (canvas.width !== Math.round(width * dpr) || canvas.height !== Math.round(height * dpr)) {
         canvas.width = Math.round(width * dpr); canvas.height = Math.round(height * dpr);
@@ -104,7 +105,8 @@
         document.getElementById('pauseTravel').textContent = 'Pausar cena'; dialogue();
         return new Promise(resolve => { done = resolve; draw(); requestAnimationFrame(tick); });
       },
-      toggle() { if (active) { paused = !paused; document.getElementById('pauseTravel').textContent = paused ? 'Continuar cena' : 'Pausar cena'; } },
+      toggle() { if (active) { paused = !paused; document.getElementById('pauseTravel').textContent = paused ? 'Continuar cena' : 'Pausar cena'; if(paused)RR_AUDIO.silence();else dialogue(); } },
+      back() { if(active&&line>0){line--;elapsed=0;dialogue();draw();} },
       advance, finish,
       snapshot: () => ({ ...model, active, paused })
     });
