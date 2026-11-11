@@ -49,7 +49,7 @@ window.RR_LEVELS=Object.freeze([
   song:'Órbita em Ruptura', style:'Rock cósmico · sintetizadores e guitarra', instrument:'lava',
   background:'assets/orbithop-ruinas-v14.png', sprite:'assets/pixel-padrao-v1.png', frames:RR_SPRITES.standard,
   colors:['#ee80d2','#65d9ff','#c09aff','#ffcf81'], accent:'#e294ff', ornament:'✦', track:'Arena de OrbitHop',
-  panel:['#181329b3','#221336d9'], melody:[66,66,69,73,76,73,69,64,62,66,69,74,76,74,69,66],
+  panel:['#18132988','#221336a9'], melody:[66,66,69,73,76,73,69,64,62,66,69,74,76,74,69,66],
   bass:[42,38,45,40], minorChord:0, sequence:[0,2,1,3,2,0,3,1,2,3,0,1,3,2,1,0],
   skipBeat:b=>b%8===7, album:'assets/album-colina.svg', symbol:'assets/symbol-colina.svg'}
 ].map((level,index)=>Object.freeze({album:`assets/album-${level.id}.svg`,symbol:`assets/symbol-${level.id}.svg`,...level,goal:RR_CAMPAIGN[index].goal})));

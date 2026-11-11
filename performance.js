@@ -16,47 +16,6 @@
     masmorra:{style:'Rock vulcânico',name:'Pulso de magma',phrases:['Passo da forja','Dupla batida','Solo de magma','Ritmo incandescente']},
     colina:{style:'Rock melódico',name:'Voo das pétalas',phrases:['Passo escarlate','Onda de pétalas','Volta do mirante','Acorde da jornada']}
   });
-  // Every dance uses one connected, complete illustration. No ragdoll, joints,
-  // separately rotating limbs or instantaneous pose changes are involved.
-  function pose(id,beat,progress,amount=1){
-    const grow=smooth(progress),a=amount*(.65+grow*.35),t=beat*TAU;
-    let x=0,lift=0,lean=0,bend=0,step=0;
-    if(id==='doces'){
-      x=Math.sin(t/4)*(.019+.008*grow)*a;
-      lift=(1-Math.cos(t))*.003*a;
-      lean=Math.sin(t/2)*.022*a;
-      bend=Math.sin(t/2-.5)*.013*a;
-      step=Math.sin(t/2)*.009*a;
-    }else if(id==='brinquedos'){
-      x=(Math.sin(t/8)*.023+Math.sin(t/2)*.005)*a;
-      lift=(1-Math.cos(t))*.004*a;
-      lean=(Math.sin(t/2)*.026+Math.sin(t/8)*.008)*a;
-      bend=Math.sin(t)*.008*a;step=Math.sin(t/2)*.014*a;
-    }else if(id==='gelo'){
-      x=Math.sin(t/6)*.028*a;
-      lift=(1-Math.cos(t/3))*.006*a;
-      lean=Math.sin(t/6)*.025*a;
-      bend=Math.sin(t/3)*.012*a;step=Math.sin(t/3)*.006*a;
-    }else if(id==='nebulosa'){
-      x=(Math.sin(t/8)*.026+Math.sin(t/4)*.004)*a;lean=Math.sin(t/4)*.018*a;
-    }else if(id==='atlanta'){
-      x=Math.sin(t/6)*.03*a;lean=Math.sin(t/6-.3)*.017*a;
-    }else if(id==='deserto'){
-      x=(Math.sin(t/4)*.04+Math.sin(t/2)*.009)*a;lean=Math.sin(t/2)*.035*a;bend=Math.sin(t/2-.6)*.023*a;step=Math.sin(t/2)*.022*a;
-    }else if(id==='pantano'){
-      x=Math.sin(t/4)*.036*a;lean=Math.sin(t/2+.3)*.032*a;bend=Math.sin(t/4)*.026*a;step=Math.sin(t/2+.4)*.024*a;
-    }else{
-      x=Math.sin(t/8)*.028*a;
-      lift=(1-Math.cos(t/4))*.006*a;
-      lean=Math.sin(t/8-.2)*.025*a;
-      bend=Math.sin(t/4)*.014*a;step=Math.sin(t/4)*.008*a;
-    }
-    // Larger continuous phrases; tempo is shared with the song, never random frames.
-    x*=1.5;lean*=1.55;bend*=1.5;step*=1.5;
-    const phrase=definitions[id].phrases[Math.min(3,Math.floor(clamp(progress)*4))];
-    const feet=id==='gelo'?Math.sin(t/3):id==='ceu'?Math.sin(t/4):Math.sin(t/2);
-    return {x,lift,lean,bend,step,leftFoot:Math.max(0,feet)**2*.028*a,rightFoot:Math.max(0,-feet)**2*.028*a,phrase};
-  }
   const moods=[
     {name:'Tristinho',message:'A próxima é nossa. Vamos juntos!',color:'#b5b8f4'},
     {name:'Concentrado',message:'No seu tempo. Estou com você!',color:'#a5d8ff'},
@@ -92,13 +51,12 @@
   }
   // Rigid whole-body illustration: uniform scale and sole-pivot rotation only.
   // No vertex warping, bending, stretching or separate limb physics.
-  function projectRigid(px,py,groundY,contactX,x,floor,scale,angle){
-    const dx=(px-contactX)*scale,dy=(py-groundY)*scale,c=Math.cos(angle),sn=Math.sin(angle);
-    return{x:x+dx*c-dy*sn,y:floor+dx*sn+dy*c};
-  }
-  function body(ctx,tex,x,floor,scale,p,alpha=1){
-    ctx.save();ctx.globalAlpha=alpha;ctx.translate(x,floor);ctx.rotate(p.lean);ctx.drawImage(tex,-p.contactX*scale,-p.groundY*scale,tex.width*scale,tex.height*scale);ctx.restore();
-    return{x,floor,height:tex.height*scale,lean:p.lean,backend:'rigid-illustration',bodyDrawCalls:1,groundContact:{x,y:floor}};
+  function body(ctx,image,rect,x,floor,scale,stance,alpha) {
+    ctx.save();
+    ctx.globalAlpha=alpha;ctx.translate(x,floor);ctx.rotate(stance.lean);
+    if(stance.flip)ctx.scale(-1,1);
+    ctx.drawImage(image,...rect,-stance.contactX*scale,-stance.groundY*scale,rect[2]*scale,rect[3]*scale);
+    ctx.restore();
   }
   const stages=new Map();
   function staticPlatform(ctx,{width,height,floor,x,id,colors,accent,power,beat,soft,still}){
@@ -223,77 +181,69 @@
     ctx.clearRect(0,0,width,height);ctx.drawImage(base,0,0,width,height);
     return{theme:id,center:width*.52,floor,power,...lighting(ctx,o),cachedBase:true};
   }
-  // Lateral travel, lift, lean and squash for ← ↓ ↑ →.
-  const gestures={
-    doces:[[-.06,.015,-.12,.03],[.01,0,.05,.09],[.02,.09,-.03,0],[.07,.045,.13,.025]],
-    brinquedos:[[-.08,.03,-.07,0],[0,0,.11,.12],[0,.1,.08,.025],[.08,.015,.14,.06]],
-    gelo:[[-.07,.008,-.08,.025],[0,0,-.06,.09],[.015,.075,.06,0],[.065,.025,.10,0]],
-    ceu:[[-.07,.04,-.07,0],[.016,0,.04,.05],[0,.115,-.04,0],[.075,.05,.095,0]],
-    deserto:[[-.085,.008,-.12,.035],[0,0,.13,.11],[.025,.075,-.09,.03],[.08,.026,.09,.08]],
-    pantano:[[-.07,.02,-.10,.07],[-.012,0,-.11,.12],[.02,.08,.035,.04],[.065,.02,.13,.08]],
-    nebulosa:[[-.065,.04,-.06,.015],[.015,.01,-.07,.06],[0,.11,.07,.015],[.085,.04,.06,0]],
-    atlanta:[[-.084,.025,-.085,.01],[.02,0,.10,.075],[.015,.08,.08,.025],[.075,.047,.075,.015]],
-    masmorra:[[-.09,.02,-.15,.06],[0,0,.16,.13],[.03,.12,-.13,.025],[.09,.035,.16,.08]],
-    colina:[[-.09,.04,-.15,.025],[.02,0,.12,.125],[.01,.135,-.12,.015],[.092,.061,.15,.045]]
+  // Direction order is ← ↓ ↑ →. Each stance has a frame (−1 is the
+  // alternate illustration), reflection, sole-pivot angle and lateral offset.
+  const stances = {
+    doces:      [[1,false,-.045,-.045],[4,false,.012,0],[5,false,-.025,.012],[3,false,.052,.037]],
+    brinquedos: [[2,false,-.065,-.046],[4,false,.022,-.006],[5,false,-.018,.006],[7,false,.048,.043]],
+    gelo:       [[-1,true,-.025,-.033],[0,false,.060,-.012],[-1,false,-.012,.008],[0,true,.045,.035]],
+    ceu:        [[0,true,-.065,-.041],[-1,false,.045,-.01],[0,false,-.040,.007],[-1,true,.028,.036]],
+    deserto:    [[-1,false,-.065,-.042],[-1,true,.050,-.007],[0,true,-.028,.006],[0,false,.066,.044]],
+    pantano:    [[0,true,-.050,-.048],[0,false,.055,-.011],[-1,true,-.021,.011],[-1,false,.050,.037]],
+    nebulosa:   [[-1,true,-.043,-.037],[0,true,.045,-.01],[-1,false,-.047,.007],[0,false,.055,.043]],
+    atlanta:    [[0,false,-.057,-.044],[-1,true,.038,-.016],[-1,false,-.030,.013],[0,true,.060,.036]],
+    masmorra:   [[-1,false,-.070,-.039],[0,true,.065,-.009],[0,false,-.042,.004],[-1,true,.063,.042]],
+    colina:     [[0,true,-.056,-.036],[-1,false,.056,-.013],[-1,true,-.034,.013],[0,false,.058,.039]],
+    fase11:     [[2,false,-.053,-.038],[4,false,.030,-.008],[5,false,-.028,.006],[3,false,.052,.034]]
   };
-  function draw(ctx,image,level,{width,height,beat,progress,amount,mood=2,soft=false,danceImage,lane,gesture=0}){
-    const p=pose(level.id,beat,progress,amount),baseRect=level.frames[0];
-    // Blend between four steps within the song's meter. All turns pivot at the sole.
-    const meter=level.meter, bar=beat/meter, phrase=Math.floor(bar/2);
-    const slide=Math.sin(bar*TAU);
-    const pulse=(1-Math.cos(beat*TAU))*.5;
-    const steps=[slide, .65*slide+.35*Math.sin(bar*TAU*2), Math.sin(bar*Math.PI), slide*(.55+.45*pulse)];
-    const blendStep=smooth((bar%2-1.6)/.4);
-    const step=steps[phrase%4]*(1-blendStep)+steps[(phrase+1)%4]*blendStep;
-    p.lean=clamp(p.lean*.6 + step*amount*.047,-.13,.13);
-    p.x=clamp(p.x*.62 + step*amount*.045,-.085,.085);
-    p.bend=0;p.step=0;p.leftFoot=0;p.rightFoot=0;p.lift=0;
-    const move=lane==null?null:gestures[level.id][lane];
-    const impulse=move?Math.sin(clamp(gesture)*Math.PI)*Math.min(1,amount+.22):0;
-    if(move&&impulse>0){
-      p.x+=move[0]*impulse;
-      p.lift=move[1]*impulse;
-      p.lean+=move[2]*impulse;
-      p.phrase=definitions[level.id].phrases[lane];
-    }
-    const floor=height*.935,center=width*.52+p.x*Math.min(height,width*1.1);
-    const baseScale=Math.min(width*.84/(level.designWidth||440),height*.86/(level.designHeight||552))*(1-amount*pulse*.021-(move?.[3]||0)*impulse);
-    const enthusiasm=soft?0:smooth((amount-.35)/.48);
-    const hasDanceImage=!!(danceImage?.complete && danceImage.naturalWidth);
-    let frame=0,nextFrame=0,blend=0;
-    if(enthusiasm>0&&level.frames.length>1){
-      const sequence=level.id==='brinquedos'?[0,1,4,5,0,2,7,3,0,5,6,7]:[0,1,4,5,0,2,3,7,0,5,6,7];
-      const frameBeat=beat/2,i=Math.floor(frameBeat),fraction=frameBeat-i;
-      frame=sequence[i%sequence.length];nextFrame=sequence[(i+1)%sequence.length];blend=smooth((fraction-.86)/.14);
-    }else if(enthusiasm>0&&hasDanceImage){
-      const accent=beat%meter;
-      nextFrame=1;
-      blend=smooth((accent-.65)/.27)*smooth((meter-accent-.45)/.29);
-    }
-    if(move&&impulse>.001&&level.frames.length>1){frame=0;nextFrame=[1,4,5,3][lane];blend=impulse;}
-    function drawFrame(index,alpha){
-      const alternate=index===1 && hasDanceImage;
-      const rect=alternate?[0,0,danceImage.naturalWidth,danceImage.naturalHeight]:level.frames[index];
-      const ground=alternate?level.dance.contact:(level.contacts?.[index]||[index===0?(level.groundY||rect[3]):rect[3],index===0?(level.contactX||rect[2]*.5):rect[2]*.5]);
-      const scale=Math.min(baseScale*baseRect[3]/rect[3],width*.84/rect[2]);
-      const local={...p,groundY:ground[0],contactX:ground[1]};
-      const tex=texture(alternate?danceImage:image,rect,index===0?level.face:null,index===0?mood:2,level.id,level.faceClip,index===0?level.mouth:null,index===0?level.tears:null);
-      const x=center+(local.contactX-rect[2]*.5)*scale;
-      const model=body(ctx,tex,x,floor-p.lift*height,scale,local,alpha);return{...model,scale,groundY:local.groundY,contactX:local.contactX,rect,tex,x};
-    }
-    const primaryWeight=(1-blend)*enthusiasm;
-    const alternateWeight=nextFrame===0?0:blend*enthusiasm;
-    const baseWeight=1-(frame===0?0:primaryWeight)-alternateWeight;
-    const model=drawFrame(0,baseWeight);
-    if(frame!==0&&primaryWeight>.001)drawFrame(frame,primaryWeight);
-    if(alternateWeight>.001)drawFrame(nextFrame,alternateWeight);
-    if(mood===0&&!soft&&level.tears){
-      ctx.save();ctx.fillStyle='#bdf6ff';for(const [i,[tx,ty,dx,dy]]of level.tears.entries()){
-        const t=((beat*.22+i*.43)%1+1)%1,q=projectRigid(tx+dx*t,ty+dy*t,model.groundY,model.contactX,model.x,floor,model.scale,p.lean);
-        ctx.beginPath();ctx.ellipse(q.x,q.y,Math.max(.8,level.mouth[2]*model.scale*.065),Math.max(1.2,level.mouth[3]*model.scale*.23),p.lean-.12,0,TAU);ctx.fill();
-      }ctx.restore();
-    }
-    return{x:center,floor,height:baseRect[3]*baseScale,lean:p.lean,backend:'rigid-illustration',bodyDrawCalls:1+Number(frame!==0&&primaryWeight>.001)+Number(alternateWeight>.001),groundContact:{x:model.x,y:floor},phrase:p.phrase,pose:p,scale:baseScale,frame,nextFrame,blend:alternateWeight,connected:true,rigid:true,mood:moods[mood].name};
+  function stepAmount(progress) {
+    return smooth(progress / .24) * (1 - smooth((progress - .56) / .44));
   }
-  window.RR_PERFORMANCE=Object.freeze({definitions,pose,moods,draw,platform,texture,lighting,projectRigid});
+  function draw(ctx,image,level,{width,height,mood=2,danceImage,lane=null,weight=0,previousLane=null,previousWeight=0,motion=1}){
+    const neutral = [0,false,0,0];
+    const move = lane==null ? neutral : stances[level.id][lane];
+    const previous = previousLane==null ? neutral : stances[level.id][previousLane];
+    const floor=height*.935;
+    const distance=Math.min(height,width*1.1);
+    const center=width*.52+distance*motion*(move[3]*weight+previous[3]*previousWeight);
+    const lean=motion*(move[2]*weight+previous[2]*previousWeight);
+    const base=level.frames[0];
+    const heightLimit=Math.min(width*.84/(level.designWidth||440),height*.86/(level.designHeight||552))*base[3];
+    function layer(stance,alpha){
+      if(alpha<=.001)return;
+      const [index,flip]=stance;
+      const alternate=index===-1&&danceImage?.complete&&danceImage.naturalWidth;
+      const frame=index===-1?0:index;
+      const rect=alternate?[0,0,danceImage.naturalWidth,danceImage.naturalHeight]:level.frames[frame];
+      const [groundY,contactX]=alternate?level.dance.contact:level.contacts?.[frame]||
+        [frame===0?(level.groundY||rect[3]):rect[3],frame===0?(level.contactX||rect[2]*.5):rect[2]*.5];
+      const scale=Math.min(heightLimit/rect[3],width*.84/rect[2]);
+      const x=center+(flip?-1:1)*(contactX-rect[2]*.5)*scale;
+      const transform={lean,groundY,contactX,flip};
+      if(!alternate&&frame===0&&level.mouth&&mood!==2){
+        const tex=texture(image,rect,level.face,mood,level.id,level.faceClip,level.mouth,level.tears);
+        body(ctx,tex,[0,0,rect[2],rect[3]],x,floor,scale,transform,alpha);
+      }else body(ctx,alternate?danceImage:image,rect,x,floor,scale,transform,alpha);
+    }
+    const neutralWeight=Math.max(0,1-weight-previousWeight);
+    layer(neutral,neutralWeight);
+    layer(previous,previousWeight);
+    layer(move,weight);
+    const definition=definitions[level.id];
+    const phrase=lane==null?definition.name:definition.phrases[lane];
+    return { x:center,floor,height:heightLimit,lean,phrase,scale:heightLimit/base[3],frame:0,
+      nextFrame:move[0],blend:weight,stepLane:lane,flipped:move[1],groundContact:{x:center,y:floor},
+      pose:{x:center,lean,lift:0},backend:'rigid-illustration',connected:true,rigid:true,mood:moods[mood].name };
+  }
+  function arenaPose(ctx,sprite,x,floor,height,step) {
+    const move = step.lane==null?[0,false,0,0]:stances.fase11[step.lane];
+    const previous = step.previousLane==null?[0,false,0,0]:stances.fase11[step.previousLane];
+    const {weight,previousWeight,motion}=step;
+    const center=x+height*motion*(move[3]*weight+previous[3]*previousWeight);
+    const rotation=motion*(move[2]*weight+previous[2]*previousWeight);
+    const layers=[[0,Math.max(0,1-weight-previousWeight)],[previous[0],previousWeight],[move[0],weight]];
+    for(const [frame,alpha] of layers)if(alpha>.001)
+      RR_SPRITES.draw(ctx,sprite,RR_SPRITES.standard[frame],center,floor,height,{rotation,alpha});
+  }
+  window.RR_PERFORMANCE=Object.freeze({definitions,moods,draw,platform,texture,lighting,stepAmount,arenaPose});
 })();

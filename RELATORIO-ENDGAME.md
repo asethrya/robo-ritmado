@@ -1,4 +1,4 @@
-# Robô Ritmado 0.14 · Relatório do Endgame
+# Robô Ritmado 0.15 · Relatório do Endgame
 
 Este complemento reúne a batalha final, os controles e o catálogo de eventos de OrbitHop. As dez metas da campanha permanecem registradas no [guia do jogo](README.md). A vitória na Colina Escarlate libera OrbitHop. Depois de recordar a origem da viagem, Pixel atravessa um portal voluntário e enfrenta Galactus na cidade em ruínas.
 
@@ -46,7 +46,7 @@ O catálogo contém 30 eventos. A primeira luta seleciona 17. Tentativas seguint
 | Afinação Vital | Acorde de reparo com energia acumulada | Cura 5 ou 8, com limite por luta |
 | Punho do Eclipse | A sombra antecipa o impacto | Uma defesa bloqueia. Falha custa 8 |
 | Rugido de Meteoros | Três meteoros correspondem a três setas | 3 por meteoro perdido. Rebater todos causa 8 |
-| Pisada de Ruptura | Rachaduras e duas colunas bloqueadas por oito batidas | O padrão usa apenas ↓ e ↑. 75% causam 6 |
+| Pisada de Ruptura | Rachaduras e duas colunas bloqueadas por oito batidas | O padrão usa apenas ↓ e ↑. A sequência defendida devolve 6. Uma defesa incompleta custa 4 e perder todas as notas custa 7 |
 | Correntes do Silêncio | Elos violetas cercam Pixel. Repita o padrão | Três acertos rompem as correntes. Falha custa 6 |
 | Sopro de Cinzas | Três notas fazem o vento atravessar a fumaça | Sucesso causa 6. Falha custa 5 |
 | Ímã Cósmico | Fragmentos são atraídos para o punho | Três acertos escapam. Falha custa 7 |

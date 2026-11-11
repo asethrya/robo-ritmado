@@ -67,7 +67,23 @@ body[data-screen=menu] .menu-nav .orbit-button {
 }
 .safety-dialog .quick-fullscreen { position: absolute; top: 8px; right: 9px; font-size: 11px; min-height: 30px; padding: 4px 9px; }
 .safety-dialog[open] { overflow: visible; }
-.safety-dialog .welcome-portrait { overflow: visible; pointer-events: none; }
+.safety-dialog .welcome-portrait {
+  overflow: visible;
+  pointer-events: none;
+  /* Pixel faces the viewer. The extended left hand is on the right. */
+  clip-path: polygon(-35% -30%, 100% -30%, 100% 100%, 49% 100%, 49% 125%, -35% 125%);
+}
+.about-dialog {
+  width: min(500px,90vw);
+  padding: 24px;
+  color: #38234e;
+  background: #fff4fd;
+  border: 2px solid #cf9dea;
+}
+.about-dialog h2 { margin: 0 0 14px; }
+.about-dialog p { font-size: calc(15px * var(--ui-scale)); line-height: 1.6; }
+.dark-mode .about-dialog { color: #f5e9ff; background: #19132b; }
+.high-contrast .about-dialog { color: white; background: black; border-color: white; }
 .safety-dialog .welcome-portrait img {
   width: 119%; max-width: none; max-height: none; height: auto;
   margin-left: -8%;
@@ -158,8 +174,9 @@ body[data-theme=fase11] .app .play-space {
 }
 body[data-theme=fase11] .app .track-shell {
   grid-column: 2; z-index: 1; border: 3px solid #ae8dd894; border-radius: 18px;
-  background: #22183455; box-shadow: 0 0 22px #9639c83b;
+  background: #22183428; box-shadow: 0 0 22px #9639c83b;
 }
+body[data-theme=fase11] .track-backdrop { display: none; }
 body[data-theme=fase11] .track-shell::before,body[data-theme=fase11] .track-shell::after { display: none; }
 body[data-theme=fase11] .app #track { height: 100%; }
 body[data-theme=fase11] .app .stage { grid-template-rows: 65px minmax(0,1fr) 50px; }
@@ -185,6 +202,9 @@ body:is([data-device=mobile],[data-device=tablet]) .app .touch-controls { displa
 body:is([data-device=mobile],[data-device=tablet]) .app .touch-controls button { width: clamp(43px,13vw,83px); height: 40px; }
 body:is([data-device=mobile],[data-device=tablet]) :is(.ambient,.orbit-fx) { opacity: .4; }
 body[data-device=mobile] :is(.track-shell,.orbit-button,.song-strip) { backdrop-filter: none; }
+body[data-screen=game] .app :is(.track-shell,.scoreboard,.song-strip,.portal-card) {
+  backdrop-filter: none;
+}
 @media (max-width:760px) {
   body[data-screen=menu] .game-logo { font-size: clamp(28px,9.1vw,56px); }
   .safety-dialog[open] { max-height: 93svh; overflow: auto; }

@@ -88,14 +88,14 @@
   }
   levelAssets(0);
   let sprite = assets[0].sprite.image;
-  let frameDirty=true,dancerDirty=true,stageHeight=1,stageDpr=1,lastPortraitMood=-1,lastPortraitSprite=null;
+  let frameDirty=true,dancerDirty=true,stageHeight=1,lastPortraitMood=-1,lastPortraitSprite=null;
   let perfectStreak = 0, frenzy = false, groove = .28;
-  let danceModel = null, stageModel = null, moodValue = 2, recentResults = [], danceClock=0;
+  let danceModel = null, stageModel = null, recentResults = [], danceStep=null, lastStageLane=null;
   const stageCanvas=$('pixelStage'), stageCtx=stageCanvas.getContext('2d');
   const portrait=$('pixelPortrait'), portraitCtx=portrait.getContext('2d');
-  function resetPerformance(){perfectStreak=0;groove=.28;setFrenzy(false);lastPortraitMood=-1;dancerDirty=true;frameDirty=true;danceClock=0;moodValue=2;recentResults=[];danceModel=null;stageModel=null;}
+  function resetPerformance(){perfectStreak=0;groove=.28;setFrenzy(false);lastPortraitMood=-1;dancerDirty=true;frameDirty=true;danceStep=null;lastStageLane=null;recentResults=[];danceModel=null;stageModel=null;}
   let dancerWidth = 600, dancerHeight = 500, spriteReady = false;
-  let danceTime = 0, danceFrame = 0, danceLevel = 0, reaction = 0, reactionKind = 'perfect', reactionLane = 0;
+  let danceFrame = 0, reactionKind = 'perfect';
   const danceSparks = [];
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
   assets[0].sprite.ready.then(() => { $('spriteStatus').hidden = true; }).catch(error => { $('spriteStatus').textContent = error.message; });
@@ -194,13 +194,13 @@
     const token = ++generation;levelAssets(index);
     state = 'loading'; spriteReady = false; dancer.style.visibility = 'hidden'; updateWorldButtons(); clearInterval(scheduler); stopVoices();
     $('start').disabled=true;
-    await Promise.all([assets[index].sprite.ready, assets[index].background.ready, LEVELS[index].id==='fase11' ? RR_FINALE.arenaReady : null]);
+    await Promise.all([assets[index].sprite.ready, assets[index].background.ready, assets[index].dance?.ready, LEVELS[index].id==='fase11' ? RR_FINALE.arenaReady : null]);
     if (token !== generation) return;
     configureLevel(index); bankedScore = carry; sprite = assets[index].sprite.image;
     RR_SPRITES.validate(sprite, FRAMES);
-    danceTime = 0; danceFrame = 0; danceLevel = 0; reaction = 0; resetPerformance();
+    danceFrame = 0; resetPerformance();
     score = 0; combo = 0; maxCombo = 0;notes = []; particles = []; rings = []; danceSparks.length = 0;
-    stats = { perfect: 0, good: 0, near: 0, miss: 0 }; reaction = 0;
+    stats = { perfect: 0, good: 0, near: 0, miss: 0 };
     modal('intro',true); modal('results',false); modal('pauseOverlay',false);
     $('countdown').innerHTML = ''; $('judgment').classList.remove('show');
     $('pause').disabled = true; $('offset').disabled = false; $('spriteStatus').hidden = true;
@@ -281,44 +281,65 @@
     dancer.width = Math.round(dancerWidth * dpr); dancer.height = Math.round(dancerHeight * dpr);
     danceCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
     const art=$('pixelArt');Object.assign(stageCanvas.style,{left:art.offsetLeft+'px',top:art.offsetTop+'px',width:box.width+'px',height:(box.height+20)+'px'});
-    const sb=box;stageHeight=box.height+20;stageDpr=dpr;
-    stageCanvas.width=Math.max(1,Math.round(sb.width*dpr));stageCanvas.height=Math.max(1,Math.round(stageHeight*dpr));stageCtx.setTransform(dpr,0,0,dpr,0,0);dancerDirty=true;frameDirty=true;
+    stageHeight=box.height+20;
+    stageCanvas.width=Math.max(1,Math.round(box.width*dpr));stageCanvas.height=Math.max(1,Math.round(stageHeight*dpr));stageCtx.setTransform(dpr,0,0,dpr,0,0);dancerDirty=true;frameDirty=true;
   }
   new ResizeObserver(resizeDancer).observe(dancer);
-  function drawDancer(dt,isSongRunning) {
+  function currentStep() {
+    const motion=RR_SETTINGS.motion();
+    if (!danceStep || !motion) return {lane:null,weight:0,previousLane:null,previousWeight:0,motion};
+    const elapsed=Math.max(0,clock()-danceStep.start);
+    const progress=elapsed/danceStep.duration;
+    const weight=RR_PERFORMANCE.stepAmount(progress);
+    const previousWeight=danceStep.previousWeight*(1-RR_PERFORMANCE.stepAmount(Math.min(progress,.24)));
+    if(progress>=1)return {lane:null,weight:0,previousLane:null,previousWeight:0,motion};
+    return {lane:danceStep.lane,weight,previousLane:danceStep.previousLane,previousWeight,motion};
+  }
+  function stepOnArrow(lane) {
+    const prior=currentStep();
+    const motion=RR_SETTINGS.motion();
+    if(!motion)return;
+    const keepPrevious=prior.previousWeight>prior.weight;
+    danceStep={lane,start:clock(),duration:Math.max(.32,Math.min(.48,BEAT*.9))/Math.max(.7,motion),
+      previousLane:keepPrevious?prior.previousLane:prior.lane,
+      previousWeight:keepPrevious?prior.previousWeight:prior.weight};
+    dancerDirty=true;
+  }
+  let lastStagePaint=-Infinity;
+  function drawDancer(dt,step,now) {
     if(!spriteReady)return;
-    if(state==='paused'&&!dancerDirty)return;
-    dancerDirty=false;danceCtx.clearRect(0,0,dancerWidth,dancerHeight);
+    const moving=step.lane!=null;
+    if(!dancerDirty&&!moving&&danceModel?.stepLane==null&&!danceSparks.length)return;
+    const dirty=dancerDirty;
+    dancerDirty=false;
+    danceCtx.clearRect(0,0,dancerWidth,dancerHeight);
     const still=reducedMotion||preferences().sensitivity;
-    const paused=state==='paused'||document.body.dataset.screen!=='game'||document.hidden||!!document.querySelector('dialog[open]');
-    if(!paused){
-      // Integrate the SAME beat clock even when dance speed is reduced. No jump
-      // to a different clock occurs when an accessibility setting changes.
-      if(isSongRunning){const now=Math.max(0,clock());danceTime+=Math.max(0,now-danceClock)*RR_SETTINGS.motion();danceClock=now;}
-      else if(state==='ready'||state==='results')danceTime+=dt*RR_SETTINGS.motion();
-      reaction=Math.max(0,reaction-dt);
+    const paused=state==='paused'||!!document.querySelector('dialog[open]');
+    const judged=stats.perfect+stats.good+stats.near+stats.miss;
+    const recent=recentResults.length?recentResults.reduce((a,b)=>a+b,0)/recentResults.length:.7;
+    const quality=recent*.85+(judged?basePoints()/(judged*100):.7)*.15;
+    groove=frenzy?1:judged?Math.max(.1,quality*.85):.28;
+    const mood=judged<3?2:quality<.32?0:quality<.55?1:quality<.76?2:quality<.91||combo<8||score<GOAL*.25?3:4;
+    const beat=still?0:Math.max(0,clock())/BEAT;
+    if(frenzy)drawAura(moving?beat:0);
+    danceModel=RR_PERFORMANCE.draw(danceCtx,sprite,level,{
+      width:dancerWidth,height:dancerHeight,mood,danceImage:assets[levelIndex].dance?.image,...step
+    });
+    danceFrame=0;
+    if(dirty||lastStageLane!==step.lane||moving&&now-lastStagePaint>=42){
+      lastStagePaint=now;
+      lastStageLane=step.lane;
+      stageModel=RR_PERFORMANCE.platform(stageCtx,{
+        width:dancerWidth,height:stageHeight,floor:danceModel.floor,x:danceModel.x,
+        id:level.id,colors:COLORS,accent:level.accent,power:groove,beat:moving?beat:0,
+        soft,still:still||!moving,deluxe:true,frenzy,symbol:assets[levelIndex].symbol.image
+      });
     }
-    const beat=still?0:danceTime/BEAT,progress=Math.max(0,Math.min(1,danceTime/DURATION));
-    const judged=Object.values(stats).reduce((a,b)=>a+b,0);
-    const recent=recentResults.length?recentResults.reduce((a,b)=>a+b,0)/recentResults.length: .7;
-    const accuracy=judged?basePoints()/ (judged*100):.7;
-    const quality=recent*.85+accuracy*.15;
-    const danceTarget = frenzy ? 1 : judged ? Math.max(.10, quality * .85) : .22;
-    if(!paused) groove += Math.sign(danceTarget-groove)*Math.min(Math.abs(danceTarget-groove),dt*.85);
-    const target=judged<3?2:quality<.32?0:quality<.55?1:quality<.76?2:quality<.91||combo<8||score<GOAL*.25?3:4;
-    if(!paused)moodValue+=(target-moodValue)*(1-Math.exp(-dt*2.2));
-    const mood=Math.max(0,Math.min(4,Math.round(moodValue)));
-    danceFrame=0;danceLevel=Math.min(3,Math.floor(progress*4));
-    if(frenzy)drawAura(beat);
-    danceModel=RR_PERFORMANCE.draw(danceCtx,sprite,level,{width:dancerWidth,height:dancerHeight,beat,progress,amount:still?0:(soft?.5:1)*groove*1.65,mood,soft,danceImage:assets[levelIndex].dance?.image,lane:reactionKind==='miss'?null:reactionLane,gesture:still?0:reaction/.42});
-    danceFrame=danceModel.frame;
-    const power=groove;
-    stageModel=RR_PERFORMANCE.platform(stageCtx,{width:dancerWidth,height:stageHeight,floor:danceModel.floor,x:danceModel.x,id:level.id,colors:COLORS,accent:level.accent,power,beat,soft,still,deluxe:true,frenzy,symbol:assets[levelIndex].symbol.image});
     if($('dancePhrase').textContent!==danceModel.phrase)$('dancePhrase').textContent=danceModel.phrase;
     const emotion=RR_PERFORMANCE.moods[mood];
     if($('pixelMood').textContent!==emotion.name){
       $('pixelMood').textContent=emotion.name;$('pixelMood').title=emotion.message;
-      $('pixelArt').setAttribute('aria-label',`Pixel ${emotion.name.toLowerCase()}, dançando com o traje de ${level.name}. ${emotion.message}`);
+      $('pixelArt').setAttribute('aria-label',`Pixel ${emotion.name.toLowerCase()}, com o traje de ${level.name}. ${emotion.message}`);
     }
     // The portrait enlarges the actual visor so the expression is also readable
     // on a small screen. It uses the exact same texture as Pixel's body.
@@ -498,7 +519,7 @@
       stats = { perfect: 0, good: 0, near: 0, miss: 0 };
       notes = CHART.map((n, i) => ({ ...n, id: i, result: null }));
       particles = []; rings = []; flashes.fill(0); pressed.fill(false); judgmentUntil = 0;
-      danceSparks.length = 0; reaction = 0; danceTime = 0; danceFrame = 0; resetPerformance();
+      danceSparks.length = 0; danceFrame = 0; resetPerformance();
       $('judgment').classList.remove('show');
       modal('intro',false); modal('pauseOverlay',false); modal('results',false);
       $('pause').disabled = false; $('pause').textContent = 'Ⅱ'; $('pause').setAttribute('aria-label', 'Pausar música');
@@ -579,7 +600,8 @@
     recentResults.push(POINTS[kind]/100);if(recentResults.length>10)recentResults.shift();
     combo = kind === 'perfect' || kind === 'good' ? combo + 1 : 0;
     maxCombo = Math.max(maxCombo, combo);
-    reaction = .42; reactionKind = kind; reactionLane = note.lane;
+    reactionKind=kind;
+    dancerDirty=true;
     if (kind !== 'miss' && !reducedMotion && !preferences().sensitivity) for (let i = 0; i < (soft ? 2 : kind === 'perfect' ? 24 : 14)*RR_SETTINGS.effects(); i++) {
       danceSparks.push({ x: -100 + Math.random() * 170, y: -50 + Math.random() * 60,
         vx: (Math.random() - .5) * 220, vy: -70 - Math.random() * 130,
@@ -606,6 +628,7 @@
   function input(lane) {
     flashes[lane] = preferences().sensitivity ? 0 : .16;
     if (state !== 'playing') return;
+    stepOnArrow(lane);
     const t = chartTime();
     if(notes.some(n=>n.held&&!n.result&&n.lane===lane))return;
     const candidates = notes.filter(n => !n.result && !n.held && n.lane === lane && Math.abs(n.time - t) <= hitWindow(n));
@@ -624,7 +647,7 @@
   }
   function finish() {
     if (state === 'results') return;
-    state = 'results'; setFrenzy(false); clearInterval(scheduler); stopVoices();
+    state = 'results'; danceStep=null;setFrenzy(false); clearInterval(scheduler); stopVoices();
     $('countdown').innerHTML = ''; $('pause').disabled = true; $('offset').disabled = false;
     $('songFill').style.width = '100%';
     document.querySelector('.song-progress').setAttribute('aria-valuenow', '100');
@@ -704,19 +727,22 @@
       SONG_BEATS=coda.end+2;DURATION=SONG_BEATS*BEAT;
     }
     const activeEvent=coda || schedule.events.find(event=>beat>=event.warn&&beat<event.end&&!battle.resolved(event.key));
-    if(activeEvent && battleEvent?.key!==activeEvent.key) RR_AUDIO.battleCue(activeEvent.element);
-    battleEvent=activeEvent ? {
-      ...activeEvent,
-      hits:notes.filter(note=>note.event===activeEvent.key&&['perfect','good','near'].includes(note.result)).length
-    } : null;
+    const started=!!activeEvent&&beat>=activeEvent.begin;
+    if(activeEvent&&battleEvent?.key!==activeEvent.key)RR_AUDIO.battleCue(activeEvent.enemyAttack?'void':activeEvent.element);
+    if(activeEvent?.enemyAttack&&started&&!battleEvent?.started)RR_AUDIO.battleCue('void');
+    const judgments=activeEvent?notes.filter(note=>note.event===activeEvent.key).map(note=>note.result):[];
+    battleEvent=activeEvent?{
+      ...activeEvent,started,judgments,
+      hits:judgments.filter(result=>['perfect','good','near'].includes(result)).length
+    }:null;
     if(status.pixel!==current.pixel || status.enemy!==current.enemy) RR_AUDIO.battleCue(current.result?.event.element);
     if($('pixelMeter').value!==current.pixel){$('pixelMeter').value=current.pixel;$('pixelLife').value=current.pixel+' / 100';}
     if($('bossMeter').value!==current.enemy){$('bossMeter').value=current.enemy;$('bossLife').value=current.enemy+' / 150';}
     const event=battleEvent;
     const arrows=['←','↓','↑','→'];
     const result=current.result;
-    const text=event ? `${RR_BATTLE.elements[event.element][0]} ${event.name} · ${beat<event.begin?'Prepare-se':'Agora'}\n${event.pattern.map(lane=>arrows[lane]).join(' ')} · ${event.cue}`
-      : result&&beat-result.beat<3 ? (result.damage?'−'+result.damage+' Galactus':result.loss?'−'+result.loss+' Pixel':result.heal?'+'+result.heal+' vida':'♪ Evento encerrado')
+    const text=event ? `${RR_BATTLE.elements[event.element][0]} ${event.name} · ${event.enemyAttack?(event.started?'Galactus ataca':'Galactus prepara'):(event.started?'Agora':'Prepare-se')}\n${event.pattern.map(lane=>arrows[lane]).join(' ')} · ${event.cue}`
+      : result&&beat-result.beat<3 ? result.event.name+' · '+(result.damage?'−'+result.damage+' Galactus':result.loss?'−'+result.loss+' Pixel':result.heal?'+'+result.heal+' vida':'♪ Evento encerrado')
       : `♪ Toque para carregar · Energia ${current.energy}/12${current.ring?' · Anéis '+current.ring+'/4':''}`;
     if(text!==battleText){battleText=text;$('battleCue').textContent=text;}
     return current;
@@ -732,7 +758,7 @@
     }
     context.closePath();
   }
-  function arrow(x, y, lane, size, color, filled = true, glow = 0) {
+  function paintArrow(ctx,x,y,lane,size,color,filled,glow) {
     ctx.save(); ctx.translate(x, y);
     ctx.rotate([Math.PI, Math.PI / 2, -Math.PI / 2, 0][lane]);
     ctx.beginPath();
@@ -751,12 +777,12 @@
         else if(level.id==='deserto'){for(let a=0;a<8;a++){ctx.save();ctx.rotate(a*Math.PI/4);ctx.fillRect(-1,size*.07,2,size*.07);ctx.restore();}ctx.beginPath();ctx.arc(0,0,size*.055,0,Math.PI*2);ctx.fill();}
         else if(level.id==='gelo'){for(let a=0;a<6;a++){ctx.save();ctx.rotate(a*Math.PI/3);ctx.fillRect(-1,-size*.15,2,size*.3);ctx.restore();}}
         else if(level.id==='ceu'){ctx.beginPath();[[0,-.16],[.04,-.04],[.16,0],[.04,.04],[0,.16],[-.04,.04],[-.16,0],[-.04,-.04]].forEach(([x,y],i)=>i?ctx.lineTo(x*size,y*size):ctx.moveTo(x*size,y*size));ctx.closePath();ctx.fill();}
-        else{starPath(ctx,0,0,size*.105,visualTime*.7);ctx.fill();}
+        else{starPath(ctx,0,0,size*.105);ctx.fill();}
         ctx.fillStyle = '#ffffff75';
         for (const dx of [-.3, -.15]) { ctx.beginPath(); ctx.arc(dx * size, 0, size * .035, 0, Math.PI * 2); ctx.fill(); }
       } else {
         ctx.strokeStyle = '#ffffff85'; ctx.lineWidth = 3;
-        const shift = (visualTime * 12) % 15;
+        const shift = 4;
         for (let sx = -size; sx < size; sx += 15) { ctx.beginPath(); ctx.moveTo(sx + shift, -size); ctx.lineTo(sx + size + shift, size); ctx.stroke(); }
       }
       ctx.restore();
@@ -770,11 +796,63 @@
     }
     ctx.restore();
   }
+  let trackArt;
+  function trackGraphics(size) {
+    const key=[width,height,size,level.id,soft,preferences().sensitivity,preferences().highContrast,...COLORS].join('|');
+    if(trackArt?.key===key)return trackArt;
+    const background=document.createElement('canvas');
+    background.width=Math.max(1,Math.ceil(width));
+    background.height=Math.max(1,Math.ceil(height));
+    const base=background.getContext('2d');
+    const panel=base.createLinearGradient(0,0,0,height);
+    panel.addColorStop(0,preferences().highContrast?'#000':level.panel[0]);
+    panel.addColorStop(1,preferences().highContrast?'#000':level.panel[1]);
+    base.fillStyle=panel;base.fillRect(0,0,width,height);
+    const laneWidth=width*.2266667;
+    for(const [lane,color] of COLORS.entries()){
+      const x=laneX(lane)-laneWidth/2+1;
+      const fill=base.createLinearGradient(0,0,0,height);
+      fill.addColorStop(0,color+'0b');fill.addColorStop(.6,color+'1d');fill.addColorStop(1,color+'38');
+      base.fillStyle=fill;base.fillRect(x,0,laneWidth-2,height);
+    }
+    if(!preferences().sensitivity){
+      for(const x of [7,width-7])for(let i=0;i<13;i++){
+        base.fillStyle=COLORS[i%4]+'9b';
+        starPath(base,x,17+i*(height-34)/12,3.1,i*.2);base.fill();
+      }
+    }
+    const stampSize=Math.ceil(size+38);
+    const arrows=COLORS.map((color,lane)=>[false,true].map(filled=>{
+      const stamp=document.createElement('canvas');
+      stamp.width=stamp.height=stampSize;
+      paintArrow(stamp.getContext('2d'),stampSize/2,stampSize/2,lane,size,color,filled,soft?0:filled?12:5);
+      return stamp;
+    }));
+    trackArt={key,background,arrows,size};
+    return trackArt;
+  }
+  function arrow(art,x,y,lane,size,filled){
+    const stamp=art.arrows[lane][Number(filled)];
+    const width=stamp.width*size/art.size;
+    ctx.drawImage(stamp,x-width/2,y-width/2,width,width);
+  }
+  const songProgress=document.querySelector('.song-progress');
+  const songTime=$('time');
+  function updateSongTime(musicTime) {
+    const percent=String(Math.round(Math.max(0,Math.min(1,musicTime/DURATION))*100));
+    if(songProgress.getAttribute('aria-valuenow')!==percent){
+      songProgress.setAttribute('aria-valuenow',percent);
+      $('songFill').style.width=percent+'%';
+    }
+    const label=`${formatTime(Math.min(DURATION,Math.max(0,musicTime)))} / ${formatTime(Math.ceil(DURATION))}`;
+    if(songTime.textContent!==label)songTime.textContent=label;
+  }
   function draw(timestamp) {
     requestAnimationFrame(draw);
     const dt = Math.min(.05, (timestamp - lastFrame) / 1000); lastFrame = timestamp;
     if (document.body.dataset.screen !== 'game'||document.hidden) return;
-    if((state==='paused'||document.querySelector('dialog[open]'))&&!frameDirty)return;frameDirty=false;
+    if(!frameDirty&&!['playing','countdown'].includes(state))return;
+    frameDirty=false;
     if (state !== 'paused') visualTime += dt;
     const active = state === 'playing' || state === 'countdown';
     let t = active || state === 'paused' || state === 'results' ? chartTime() : -4 * BEAT;
@@ -789,8 +867,9 @@
       if (musicT >= 0) { state = 'playing'; $('pixelMessage').textContent = 'Ouça a batida. As setas estão chegando!'; }
     }
     if (state === 'playing') {
-      if (musicT > BEAT * .8) $('countdown').innerHTML = '';
+      if(musicT>BEAT*.8&&lastCount!==null){$('countdown').textContent='';lastCount=null;}
       for (const note of notes) {
+        if(note.time>t)break;
         if (note.result) continue;
         if (note.held) {
           if (t>=note.time+note.hold && pressed[note.lane]) judge(note,'perfect');
@@ -800,12 +879,7 @@
       const outcome=battle&&updateBattle(t/BEAT);
       if (outcome?.won || outcome?.lost || musicT >= DURATION) {for(const note of notes)if(!note.result)judge(note,'miss');finish();}
     }
-    if (active && state !== 'results') {
-      const progress = Math.min(1, Math.max(0, musicT / DURATION));
-      $('songFill').style.width = `${progress * 100}%`;
-      document.querySelector('.song-progress').setAttribute('aria-valuenow', Math.round(progress * 100));
-      $('time').textContent = `${formatTime(Math.min(DURATION, Math.max(0, musicT)))} / ${formatTime(Math.ceil(DURATION))}`;
-    }
+    if(active&&state!=='results') updateSongTime(musicT);
     if (judgmentUntil && timestamp > judgmentUntil) { $('judgment').classList.remove('show'); judgmentUntil = 0; }
     if (preferences().captions && active) {
       const approaching = notes.find(n => !n.result && n.time - t < 1.4 / runRate && n.time - t > -.24 / runRate);
@@ -814,13 +888,14 @@
       if (timestamp > captionUntil) $('captionResult').textContent = '';
     }
     if(active&&state==='playing'&&performance.now()-lastBalloon>8500)nextConversation(recentResults.length&&recentResults.slice(-3).every(n=>n===0)?'encourage':'waiting');
-    if (battle && state!=='paused') reaction=Math.max(0,reaction-dt);
-    if (battle) RR_FINALE.drawArena($('battleArt'),sprite,Math.max(0,musicT)/BEAT,battleEvent,{...battle.snapshot(),frenzy},reactionLane,reactionKind==='miss'?0:reaction);
-    else drawDancer(dt, active);
+    const step=currentStep();
+    if(!width||height<=82)return;
+    if (battle) RR_FINALE.drawArena($('battleArt'),sprite,Math.max(0,t)/BEAT,battleEvent,{...battle.snapshot(),frenzy},step,timestamp);
+    else drawDancer(dt,step,timestamp);
     ctx.clearRect(0, 0, width, height);
     const target = targetY(), laneWidth = width * .2266667, size = Math.min(78 * (preferences().scaleEnabled ? preferences().arrowScale : 1), laneWidth * .88);
-    const bg = ctx.createLinearGradient(0, 0, 0, height);
-    bg.addColorStop(0, preferences().highContrast ? '#000000' : level.panel[0]); bg.addColorStop(1, preferences().highContrast ? '#000000' : level.panel[1]); ctx.fillStyle = bg; ctx.fillRect(0, 0, width, height);
+    const art=trackGraphics(size);
+    ctx.drawImage(art.background,0,0,width,height);
     if(battleEvent?.blocked && t/BEAT>=battleEvent.begin){
       for(const lane of battleEvent.blocked){
         const x=laneX(lane)-laneWidth/2;
@@ -829,36 +904,11 @@
         ctx.fillText('×',laneX(lane),22);
       }
     }
-    // Lanes carry a subtle stable color so the hit line remains readable.
-    for (let lane = 0; lane < 4; lane++) {
-      const x = laneX(lane);
-      const grad = ctx.createLinearGradient(0, 0, 0, height);
-      grad.addColorStop(0, COLORS[lane] + '0b'); grad.addColorStop(.6, COLORS[lane] + '1d'); grad.addColorStop(1, COLORS[lane] + '38');
-      ctx.fillStyle = grad; ctx.fillRect(x - laneWidth / 2 + 1, 0, laneWidth - 2, height);
-      if (lane < 3) { ctx.strokeStyle = '#ffffff0c'; ctx.beginPath(); ctx.moveTo(x + laneWidth / 2, 0); ctx.lineTo(x + laneWidth / 2, height); ctx.stroke(); }
-      if (flashes[lane] > 0) {
-        if (state !== 'paused') flashes[lane] = Math.max(0, flashes[lane] - dt);
-        ctx.fillStyle = COLORS[lane] + Math.floor(Math.min(1, flashes[lane] * 2) * 50).toString(16).padStart(2, '0');
-        ctx.fillRect(x - laneWidth / 2, target - 65, laneWidth, 126);
-      }
-    }
-    // Jewel lights and themed ornaments along the track edges.
-    if (!preferences().sensitivity) for (let side = 0; side < 2; side++) {
-      const x = side ? width - 7 : 7;
-      for (let i = 0; i < 13; i++) {
-        const y = 17 + i * (height - 34) / 12;
-        ctx.save(); ctx.fillStyle = COLORS[(i + side) % 4];
-        ctx.globalAlpha = soft ? .55 : .5 + Math.sin(visualTime * 3 + i * .6) * .22;
-        ctx.shadowColor = ctx.fillStyle; ctx.shadowBlur = soft ? 0 : 9;
-        if (level.id!=='doces') { starPath(ctx, x, y, 3.6, i * .2); ctx.fill(); }
-        else { ctx.beginPath(); ctx.arc(x, y, 2.8, 0, Math.PI * 2); ctx.fill(); }
-        ctx.restore();
-      }
-    }
-    if (!soft) for (let i = 0; i < 24; i++) {
-      const y = ((i * 67 + visualTime * 15) % height), x = (i * 137.5 + 29) % width;
-      ctx.fillStyle = COLORS[i % 4] + '55';
-      if (i % 4 === 0) { starPath(ctx, x, y, 3.2, visualTime); ctx.fill(); } else ctx.fillRect(x, y, 2, 2);
+    for(let lane=0;lane<4;lane++){
+      if(flashes[lane]<=0)continue;
+      if(state!=='paused')flashes[lane]=Math.max(0,flashes[lane]-dt);
+      ctx.fillStyle=COLORS[lane]+Math.floor(Math.min(1,flashes[lane]*2)*50).toString(16).padStart(2,'0');
+      ctx.fillRect(laneX(lane)-laneWidth/2,target-65,laneWidth,126);
     }
     const travel = 2.3 / runArrowSpeed / runRate, speed = (target - 15) / travel;
     if (settingsLocked() || state === 'results') {
@@ -879,11 +929,12 @@
         ctx.shadowColor = COLORS[lane]; ctx.shadowBlur = 12;
         ctx.beginPath(); ctx.arc(laneX(lane), target, size * (.65 + pulse * .08), 0, Math.PI * 2); ctx.stroke(); ctx.restore();
       }
-      arrow(laneX(lane), target, lane, size + (flashes[lane] > .1 ? 4 : 0), COLORS[lane], false, soft ? 0 : 7);
+      arrow(art,laneX(lane),target,lane,size+(flashes[lane]>.1?4:0),false);
       ctx.font = `bold ${Math.max(7,Math.min(12,width/48))}px Trebuchet MS, Arial`; ctx.fillStyle = '#e4d8ed'; ctx.textAlign = 'center';
       ctx.fillText(DIRECTIONS[lane].toUpperCase(), laneX(lane), target + (width<350?37:50), laneWidth*.94);
     }
     for (const note of notes) {
+      if(note.time>t+(target+70)/speed)break;
       if (note.result) continue;
       const y = note.held ? target : target - (note.time - t) * speed;
       if (y < -70 || y > height + 50) continue;
@@ -897,19 +948,13 @@
       if(note.event!=null){
         ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.strokeRect(x-size*.43,y-size*.43,size*.86,size*.86);
       }
-      const trail = ctx.createLinearGradient(0, y - 95, 0, y); trail.addColorStop(0, color + '00'); trail.addColorStop(1, color + '75');
-      if (!preferences().sensitivity) { ctx.fillStyle = trail; ctx.fillRect(x - 5, y - 95, 10, 82); }
-      if (!soft) {
-        const halo = ctx.createRadialGradient(x, y, 3, x, y, size * .9);
-        halo.addColorStop(0, color + '55'); halo.addColorStop(1, color + '00');
-        ctx.fillStyle = halo; ctx.fillRect(x - size, y - size, size * 2, size * 2);
-        for (let i = 0; i < 3; i++) {
-          const a = visualTime * 2.5 + i * Math.PI * 2 / 3 + note.id, r = size * .62;
-          ctx.fillStyle = i === 0 ? '#fff9dd' : color;
-          starPath(ctx, x + Math.cos(a) * r, y + Math.sin(a) * r, 2.4 + pulse, a); ctx.fill();
-        }
+      if(!soft){
+        ctx.globalAlpha=.24;
+        ctx.fillStyle=color;
+        ctx.fillRect(x-1.5,y-size*.72,3,size*.42);
+        ctx.globalAlpha=1;
       }
-      arrow(x, y, note.lane, size * (.88 + (soft ? 0 : Math.sin(visualTime * 6 + note.id) * .035 * approach)), color, true, soft ? 0 : 19);
+      arrow(art,x,y,note.lane,size*.88,true);
     }
     for (const ring of rings) {
       if (state !== 'paused') ring.age += dt;
@@ -1004,18 +1049,18 @@
   // Gameplay has no autoplay or score-writing test hooks.
   Object.defineProperty(window, 'pixelDiagnostics', { value: Object.freeze({
     snapshot: () => ({ state, transition:reflection.snapshot().active?reflection.snapshot():traveler.snapshot(), rate: runRate, arrowSpeed: runArrowSpeed, palette: [...COLORS], level: levelIndex + 1, world: level.id, bpm: BPM, song: level.song,
-      duration: DURATION, sprite: level.sprite, choreography: danceModel, instrument: level.instrument, meter: level.meter, background: level.background, stage: stageModel, emotion: {value:moodValue,name:RR_PERFORMANCE.moods[Math.round(moodValue)].name,recent:[...recentResults]}, musicSignature: MELODY.join(',') + '/' + BASS.join(','),
+      duration: DURATION, sprite: level.sprite, choreography: danceModel, instrument: level.instrument, meter: level.meter, background: level.background, stage: stageModel, emotion: {name:danceModel?.mood||'Animando',recent:[...recentResults]}, musicSignature: MELODY.join(',') + '/' + BASS.join(','),
       bankedScore, totalScore: bankedScore + score, unlocked: toysUnlocked, unlockedThrough,
       effects: { trackParticles: particles.length, rings: rings.length, dancerParticles: danceSparks.length, reduced: soft },
       time: audio ? clock() : null, chartTime: audio ? chartTime() : null,
       score, combo, maxCombo, frenzy, perfectStreak, groove, stats: { ...stats }, totalNotes: CHART.length, maxPoints: MAX_POINTS,
       goal: GOAL, offset, audioState: audio?.state || 'not-started',
-      dancer: { ready: spriteReady, frame: danceFrame, level: danceLevel, time: danceTime,
-        reaction: reactionKind, reactionRemaining: reaction, width: dancerWidth, height: dancerHeight,
+      dancer: { ready: spriteReady, frame: danceFrame, step:currentStep(),
+        reaction: reactionKind, width: dancerWidth, height: dancerHeight,
         sourceWidth: sprite.naturalWidth, sourceHeight: sprite.naturalHeight, sourceRect: [...FRAMES[danceFrame]],
         sourceRects: FRAMES.map(r=>[...r]),
         visible: dancer.style.visibility !== 'hidden' },
-      battle:battle?.snapshot()||null,
+      battle:battle?{...battle.snapshot(),activeEvent:battleEvent?.id||null,enemyAttack:battleEvent?.enemyAttack||null,attackStarted:battleEvent?.started||false}:null,
       notes: notes.map(n => ({ lane: n.lane, time: n.time, result: n.result, hold:n.hold||0, event:n.event })) }),
     audioLevel: () => {
       if (!analyser) return 0;

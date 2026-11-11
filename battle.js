@@ -12,8 +12,17 @@
   const rules = Object.freeze({ pixelHP: 100, bossHP: 150, finaleHP: 18, warning: 4,
     interval: 8, tolerance: .24, assistedTolerance: .32, recoveryLimit: 2 });
   const hit = (damage = 0, loss = 0, heal = 0) => ({ damage, loss, heal });
+  const enemyAttacks = {
+    stomp:'rupture', fist:'eclipse', meteors:'meteors', chains:'chains',
+    ash:'ash', magnet:'magnet', bite:'rift', constellation:'constellation',
+    wind:'rupture', geode:'eclipse', bridge:'meteors', bubble:'eclipse',
+    rebound:'eclipse', beam:'beam', return:'rupture', steal:'magnet',
+    climb:'rupture', rift:'rift', echo:'beam', protect:'meteors',
+    steam:'ash', prism:'beam'
+  };
   function move(id, name, actor, element, pattern, cue, resolve, details = {}) {
-    return Object.freeze({ id, name, actor, element, pattern, cue, resolve, duration: Math.max(4, pattern.length + 1), ...details });
+    return Object.freeze({ id, name, actor, element, pattern, cue, resolve,
+      enemyAttack:enemyAttacks[id]||null, duration:Math.max(4,pattern.length+1), ...details });
   }
   const moves = [
     move('phoenix','Riff de Fênix','Pixel','fire',[0,2,1,3],'Quatro notas fazem nascer a fênix.',(n,k)=>hit(n===k?10:n>=k-1?6:0)),
@@ -26,7 +35,7 @@
     move('tune','Afinação Vital','Pixel','pixel',[2,1,2],'Toque um acorde de reparo.',(n,k)=>hit(0,0,n===k?8:n>=k-1?5:0)),
     move('fist','Punho do Eclipse','Galactus','void',[2],'Acerte a nota de defesa antes do impacto.',n=>n?hit():hit(0,8)),
     move('meteors','Rugido de Meteoros','Galactus','void',[0,2,3],'Cada seta rebate um meteoro.',(n,k)=>n===k?hit(8):hit(0,3*(k-n))),
-    move('stomp','Pisada de Ruptura','Galactus','void',[1,2,1,2],'Use só ↓ e ↑ até a poeira baixar.',(n,k)=>n>=k-1?hit(6):hit(),{blocked:[0,3],duration:8,spacing:2}),
+    move('stomp','Pisada de Ruptura','Galactus','void',[1,2,1,2],'Defenda-se com ↓ e ↑. Acerte a sequência para devolver a onda.',(n,k)=>n>=k-1?hit(6):hit(0,n?4:7),{blocked:[0,3],duration:8,spacing:2}),
     move('chains','Correntes do Silêncio','Galactus','void',[3,0,1],'Repita o padrão para soltar a guitarra.',(n,k)=>n===k?hit():hit(0,6)),
     move('ash','Sopro de Cinzas','Galactus','air',[2,0,3],'Três notas dispersam as cinzas.',(n,k)=>n===k?hit(6):hit(0,5)),
     move('magnet','Ímã Cósmico','Galactus','void',[0,1,0,3],'Acerte três passos para escapar da sucata.',(n,k)=>n>=k-1?hit():hit(0,7)),

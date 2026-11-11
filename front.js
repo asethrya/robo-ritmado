@@ -65,7 +65,14 @@
       <div class="settings-content"><div id="optionsPanel" role="tabpanel" aria-labelledby="optionsTab"></div><div id="accessibilityPanel" role="tabpanel" aria-labelledby="accessibilityTab" hidden></div><div id="preferencesPanel" role="tabpanel" aria-labelledby="preferencesTab" hidden>
       </div></div>
       <div class="settings-footer"><small>Alterações salvas automaticamente neste navegador.</small><button id="reviewSafety" class="quiet-button" data-cue="accessibility">Rever aviso</button><button id="doneSettings" class="quiet-button" data-cue="back">Concluir</button></div>
-    </dialog><div id="shellToast" class="toast" role="status" aria-live="polite" hidden></div>
+    </dialog>
+    <dialog id="aboutDialog" class="about-dialog" aria-labelledby="aboutTitle">
+      <h2 id="aboutTitle">Sobre Nós</h2>
+      <p>Somos três amigos, graduandos em Engenharia de Software e fascinados por jogos e tecnologia.</p>
+      <p>Robô Ritmado nasceu da vontade de criar algo juntos. Neste projeto, unimos música, arte e programação e aprendemos, na prática, como nossas ideias ganham vida em um jogo.</p>
+      <form method="dialog"><button class="quiet-button" data-cue="back">Voltar ao menu</button></form>
+    </dialog>
+    <div id="shellToast" class="toast" role="status" aria-live="polite" hidden></div>
   `);
   const slider = (key,label,min,max,step,help) => `<div class="setting-row"><div class="setting-top"><label for="set-${key}">${label}</label><output id="out-${key}" for="set-${key}"></output></div><p>${help}</p><input id="set-${key}" data-setting="${key}" type="range" min="${min}" max="${max}" step="${step}"></div>`;
   const toggle = (key,label,help,sub='') => `<div class="setting-row"><div class="setting-top"><label for="set-${key}">${label}</label><input id="set-${key}" data-setting="${key}" type="checkbox" aria-describedby="help-${key}"></div><p id="help-${key}">${help}</p>${sub}</div>`;
@@ -164,7 +171,7 @@
   for(const b of document.querySelectorAll('[data-return-menu]'))b.onclick=returnMenu;
   $('phaseAccessibility').onclick=()=>openSettings('accessibility');
   $('menuOptions').onclick=()=>openSettings('options'); $('menuAccessibility').onclick=()=>openSettings('accessibility');
-  $('menuAbout').onclick=()=>toast('Estamos Trabalhando Nisso por enquanto!!');
+  $('menuAbout').onclick=()=>$('aboutDialog').showModal();
   $('gameMenu').onclick=returnMenu;
   $('gameAccessibility').onclick=async()=>{await RR_GAME.pause();openSettings('accessibility');};
   $('menuResume').onclick=async()=>{screen('game');await RR_GAME.resume();};
@@ -224,6 +231,7 @@
 
   // Learning progresses on successful input, rather than on elapsed time.
   const keys=['ArrowLeft','ArrowDown','ArrowUp','ArrowRight'], glyphs=['←','↓','↑','→'], names=['esquerda','baixo','cima','direita'];
+  let tutorialPose=null;
   let lesson=0,tutorialActive=false,lessonElapsed=0,seen=new Set(),tutorialHits=0,tutorialScore=0,tutorialNote=null,feedbackUntil=0;
   const lessons=[
     'Oi! Eu sou Pixel! Vamos brincar de acertar as setas? Eu te mostro como! ♡',
@@ -235,6 +243,7 @@
   ];
   function dialogue(text){clearTimeout(dialogueTimer);$('tutorialDialogue').textContent=text;$('tutorialDialogue').classList.remove('reveal');requestAnimationFrame(()=>$('tutorialDialogue').classList.add('reveal'));}
   function setLesson(n) {
+    tutorialPose=null;
     tutorialDirty=true;lesson=n;lessonElapsed=0;tutorialNote=null;tutorialHits=0;seen.clear();feedbackUntil=0;
     $('lessonRewards').textContent=n===5?'★★★★':'☆☆☆☆';
     $('lessonNumber').textContent=` / ${n+1} DE ${lessons.length}`;dialogue(lessons[n]);$('tutorialFeedback').textContent='';
@@ -251,6 +260,7 @@
   function feedback(message){$('tutorialFeedback').textContent=message;feedbackUntil=lessonElapsed+2;$('lessonRewards').textContent='★'.repeat(Math.min(4,lesson===1?seen.size:tutorialHits))+'☆'.repeat(Math.max(0,4-(lesson===1?seen.size:tutorialHits)));}
   function tutorialInput(lane) {
     if(!tutorialActive||$('settingsDialog').open||$('safetyDialog').open)return;
+    tutorialPose={lane,start:lessonElapsed};
     if(lesson===1){seen.add(lane);document.querySelector(`[data-tutorial-lane="${lane}"]`).dataset.seen='true';RR_AUDIO.hit(lane);feedback(`${seen.size} de 4 direções: ${names[lane]}!`);if(seen.size===4){$('tutorialNext').disabled=false;feedback('Aeee! Quatro estrelinhas! Vamos ao próximo passo?');RR_AUDIO.cheer();}return;}
     if(![3,4].includes(lesson)||!tutorialNote){if(lesson===2)feedback('Nesta etapa, observe o encontro. Sua vez já vem!');return;}
     const delta=Math.abs(tutorialNote.at-lessonElapsed),window=.38/RR_SETTINGS.rate();
@@ -296,6 +306,16 @@
     const [w,h]=dims.get(actorCanvas)||[1,1];act.clearRect(0,0,w,h);
     const motion=RR_SETTINGS.motion();if(!(currentScreen==='cutscene'&&cinemaPaused)&&!document.hidden&&!$('settingsDialog').open)actorTime+=dt*motion;
     if(currentScreen==='cutscene'){cinema.draw(shot,shotElapsed);return;}
+    if(currentScreen==='tutorial'){
+      if(!actorImage.complete||!actorImage.naturalWidth)return;
+      const progress=tutorialPose?(lessonElapsed-tutorialPose.start)/.4:1;
+      const weight=motion?RR_PERFORMANCE.stepAmount(progress):0;
+      const size=Math.min(w*.96/465,h*.94/530)*520;
+      RR_PERFORMANCE.arenaPose(act,actorImage,w*.51,h*.97,size,{
+        lane:tutorialPose?.lane??null,weight,previousLane:null,previousWeight:0,motion
+      });
+      return;
+    }
     let f=0;
     if(currentScreen==='menu'&&performance.now()<greetingUntil)f=0;
     const sway=motion===0?0:Math.sin(actorTime*.7)*.009;
@@ -340,7 +360,7 @@
   }
   let lastFxDraw=-1000,lastActorDraw=-1000;
   function frame(now){requestAnimationFrame(frame);const dt=Math.min(.05,(now-last)/1000);last=now;
-    if(currentScreen==='game'||document.hidden||$('settingsDialog').open||document.body.classList.contains('warning-pending'))return;
+    if(currentScreen==='game'||document.hidden||$('settingsDialog').open||$('aboutDialog').open||document.body.classList.contains('warning-pending'))return;
     if(!document.hidden&&!(currentScreen==='cutscene'&&cinemaPaused))elapsed+=dt;
     if(currentScreen!=='tutorial'||now-lastActorDraw>=32){renderActor(currentScreen==='tutorial'?Math.min(.05,(now-lastActorDraw)/1000):dt);lastActorDraw=now;}if(now-lastFxDraw>=(currentScreen==='tutorial'?48:32)){renderFX();lastFxDraw=now;}renderTutorial(dt);if(currentScreen==='cutscene')renderSpeech();
     if(currentScreen==='cutscene'&&!cinemaPaused&&!document.hidden&&!$('settingsDialog').open){shotElapsed+=dt;if(shotElapsed>=shots[shot].duration)nextShot();}

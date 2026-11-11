@@ -10,9 +10,9 @@
   const prepareArena=()=>Promise.all(['ruins','boss','pixel'].map(key=>asset(key).ready));
   const smooth = n => { n=Math.max(0,Math.min(1,n));return n*n*(3-2*n); };
   const mix = (a,b,p) => a+(b-a)*p;
-  function surface(canvas) {
-    const {width,height}=canvas.getBoundingClientRect();
-    const dpr=RR_SETTINGS.dpr();
+  function surface(canvas,bounds,limit=Infinity) {
+    const {width,height}=bounds||canvas.getBoundingClientRect();
+    const dpr=Math.min(limit,RR_SETTINGS.dpr());
     const w=Math.max(1,Math.round(width*dpr)),h=Math.max(1,Math.round(height*dpr));
     if (canvas.width!==w || canvas.height!==h) { canvas.width=w;canvas.height=h; }
     const ctx=canvas.getContext('2d');
@@ -86,122 +86,48 @@
     ctx.shadowBlur=0;ctx.font=`bold ${Math.max(11,r*.34)}px system-ui`;ctx.textAlign='center';
     ctx.fillStyle=light;ctx.fillText(symbol,x,y+r*.63);ctx.restore();
   }
-  function pixel(ctx,sprite,x,floor,height,beat,lane,impulse=0,flip=false) {
-    const gentle=RR_SETTINGS.gentle();
-    const amount=gentle?0:Math.sin(Math.PI*Math.min(1,impulse/.42));
-    const pose=impulse>0?[2,4,5,3][lane]:Math.floor(beat/2)%2?0:3;
-    const dx=[-.07,.01,.015,.07][lane]*height*amount;
-    const dy=[.02,.03,.16,.06][lane]*height*amount;
-    RR_SPRITES.draw(ctx,sprite,RR_SPRITES.standard[pose],x+dx,floor-dy,height,
-      {flip,rotation:amount*[-.12,.07,-.09,.12][lane]});
-  }
-  function encounterFX(ctx,event,x,bx,floor,ph,bh,beat,started) {
-    const gentle=RR_SETTINGS.gentle(),p=started?smooth((beat-event.begin)/event.duration):0;
-    const t=gentle?0:beat;
-    const px=x+ph*.12,py=floor-ph*.43,ex=bx-bh*.19,ey=floor-bh*.53;
-    const r=Math.max(12,ph*.17);
-    ctx.save();
-    ctx.lineWidth=3;
-    ctx.strokeStyle=RR_BATTLE.elements[event.element][2];
-    if(['beam','return','rift','bite'].includes(event.id)){
-      const contact=mix(px,ex,.43+(event.hits||0)*.075),cy=floor-ph*.52;
-      if(event.id==='beam'){
-        for(const [fromX,fromY,color] of [[px,py,'#4df5f8'],[ex,ey,'#d474ff']]){
-          ctx.strokeStyle=color;ctx.lineWidth=started?7:2;
-          ctx.beginPath();ctx.moveTo(fromX,fromY);ctx.lineTo(contact,cy);ctx.stroke();
-        }
-        power(ctx,'pixel',contact,cy,r*.7,t);
-      }else RR_PORTAL.draw(ctx,event.id==='bite'?ex:contact,cy,r*.8,r*1.1,t,started?.9:.48,false,event.id!=='return'&&(event.hits||0)<3);
-    }
-    if(['chains','constellation','geode','bubble','protect'].includes(event.id)){
-      const orbitRadius=ph*.35;
-      const color=RR_BATTLE.elements[event.element][1];
-      ctx.strokeStyle=color;ctx.fillStyle=color;
-      ctx.globalAlpha=started?.82:.52;
-      const links=event.id==='constellation'?Math.max(0,4-(event.hits||0)):5;
-      for(let i=0;i<links;i++){
-        const angle=i*Math.PI*2/5+(gentle?0:t*.19);
-        const ax=x+Math.cos(angle)*orbitRadius,ay=py+Math.sin(angle)*orbitRadius*.79;
-        if(event.id==='constellation')spark(ctx,ax,ay,r*.19);
-        else if(event.id==='chains'){
-          ctx.beginPath();ctx.ellipse(ax,ay,r*.24,r*.12,angle,0,Math.PI*2);ctx.stroke();
-        }else{
-          ctx.beginPath();ctx.arc(x,py,orbitRadius+i*2,i*1.25,i*1.25+.98);ctx.stroke();
-        }
-      }
-    }
-    if(event.id==='magnet'||event.id==='steal'){
-      for(let i=0;i<9;i++){
-        const pull=gentle?i/9:(i/9+t*.13)%1;
-        ctx.fillStyle=i%2?'#be77fa':'#573662';
-        ctx.fillRect(mix(px,ex,pull),mix(py,ey,pull)+Math.sin(i*7+pull*6)*r,5+i%4,5+i%4);
-      }
-    }
-    if(event.id==='wind'||event.id==='ash'||event.id==='tide'){
-      const cx=event.id==='ash'?mix(ex,px,p):mix(px,ex,p);
-      for(let i=0;i<3;i++){
-        ctx.globalAlpha=.7-i*.18;
-        power(ctx,event.element,cx-i*r*.31,floor-r*(1+i*.3),r*(1+i*.22),t,.73);
-      }
-    }
-    if(event.id==='fist'||event.id==='stomp'){
-      ctx.globalAlpha=.5;ctx.fillStyle='#2b123b';
-      ctx.beginPath();ctx.ellipse(ex,floor-r*.08,bh*(.18+p*.12),r*.46,0,0,Math.PI*2);ctx.fill();
-    }
-    if(['echo','tectonic','bridge','climb'].includes(event.id)){
-      const count=event.id==='tectonic'?event.hits:Math.max(1,Math.floor(p*event.pattern.length)+1);
-      for(let i=0;i<count;i++){
-        const xx=mix(px,ex,(i+1)/(event.pattern.length+1));
-        const yy=event.id==='climb'?mix(floor,ey,(i+1)/event.pattern.length):floor-r*.54;
-        power(ctx,event.element,xx,yy,r*.55,t,.56);
-      }
-    }
-    ctx.restore();
-  }
-  function drawArena(canvas,sprite,beat,event,battle,lane,impulse) {
-    const {ctx,width:w,height:h}=surface(canvas);
-    const gentle=RR_SETTINGS.gentle(),t=gentle?0:beat;
-    const floor=h*.95, x=w*.175, bx=w*.835, ph=Math.min(h*.67,w*.33), bh=Math.min(h*.93,w*.44);
+  const arenaCanvas=$('battleArt');
+  let arenaBounds=null,lastArenaPaint=-Infinity;
+  new ResizeObserver(([entry])=>{
+    arenaBounds=entry.contentRect;
+    lastArenaPaint=-Infinity;
+  }).observe(arenaCanvas);
+
+  function drawArena(canvas,sprite,beat,event,battle,step,now) {
+    const profile=RR_SETTINGS.get().device;
+    const interval=profile==='pc'?16:32;
+    if(now-lastArenaPaint<interval)return;
+    lastArenaPaint=now;
+    const {ctx,width:w,height:h}=surface(canvas,arenaBounds,profile==='pc'?1.2:1);
+    if(w<2||h<2)return;
+    const quiet=RR_SETTINGS.gentle();
+    const t=quiet?0:beat;
+    const floor=h*.95, x=w*.175,bx=w*.835;
+    const ph=Math.min(h*.67,w*.33),bh=Math.min(h*.93,w*.44);
     ruinsFX(ctx,w,h,t*.5);
-    const recent=battle.result && beat-battle.result.beat<3 ? battle.result : null;
-    const recoil=recent?.damage&&!gentle?Math.sin(smooth((beat-recent.beat)/3)*Math.PI):0;
-    const windup=event?.actor==='Galactus'&&!gentle?Math.sin(smooth((beat-event.warn)/4)*Math.PI):0;
-    figure(ctx,asset('boss').image,bx+recoil*w*.023-windup*w*.015,floor-windup*bh*.018,bh,battle.won?.25:1);
-    if(battle.frenzy)power(ctx,'pixel',x,floor-ph*.48,ph*.43,t,.68);
-    pixel(ctx,sprite,x,floor,ph,t,lane,impulse);
-    if(event){
-      const [,,color]=RR_BATTLE.elements[event.element];
-      ctx.strokeStyle=color;ctx.lineWidth=2;
-      const focus=event.actor==='Galactus'?bx:x;
-      if(event.actor!=='Pixel') power(ctx,'void',bx-bh*.18,floor-bh*.52,bh*.14,t,.65);
-      const started=beat>=event.begin;
-      encounterFX(ctx,event,x,bx,floor,ph,bh,beat,started);
-      const element=event.second&&beat>=event.begin+2?event.second:event.element;
-      const r=Math.max(15,ph*.21);
-      if(started || event.actor!=='Galactus') power(ctx,element,focus,floor-ph*.55,r,t,started?1:.45);
-      if(started && event.id==='meteors'){
-        for(let i=0;i<3;i++)power(ctx,'fire',bx+(i-1)*bh*.17,floor-bh*(.8-i*.13),bh*.07,t);
-      }
-      if(started && event.id==='rebound'){
-        const p=gentle?.5:(beat-event.begin)%2;
-        power(ctx,'pixel',mix(x,bx,p<1?p:2-p),floor-ph*.66,r*.6,t);
-      }
-      if(started && event.id==='stomp'){
-        ctx.beginPath();ctx.moveTo(bx,floor);ctx.lineTo(bx-r,floor-r*.23);ctx.lineTo(bx-r*2,floor-r*.1);ctx.lineTo(bx-r*3,floor-r*.35);ctx.stroke();
-      }
+    const recent=battle.result&&beat-battle.result.beat<2.4?battle.result:null;
+    const recoil=recent?.damage&&!quiet?Math.sin(smooth((beat-recent.beat)/2.4)*Math.PI):0;
+    const windup=event?.enemyAttack&&!quiet?Math.sin(smooth((beat-event.warn)/4)*Math.PI):0;
+    const layout={
+      boss:{x:bx-bh*.20,y:floor-bh*.48},player:{x,y:floor-ph*.49},
+      guitar:{x:x+ph*.19,y:floor-ph*.44},floor:floor-4,r:Math.max(15,ph*.22)
+    };
+    figure(ctx,asset('boss').image,bx+recoil*w*.023-windup*w*.02,floor-windup*bh*.012,bh,battle.won?.25:1);
+    if(battle.frenzy)RR_BATTLE_EFFECTS.light(ctx,'#aab1ff',x,floor-ph*.48,ph*.59,.5);
+    RR_PERFORMANCE.arenaPose(ctx,sprite,x,floor,ph,step);
+    if(event?.enemyAttack)RR_BATTLE_EFFECTS.enemy(ctx,event,beat,layout,quiet);
+    if(event?.hits&&event.actor!=='Galactus'){
+      const [,color]=RR_BATTLE.elements[event.element];
+      RR_BATTLE_EFFECTS.light(ctx,color,layout.guitar.x,layout.guitar.y,layout.r*(.55+event.hits*.17),quiet?.4:.66);
     }
-    if(recent?.damage){
-      const p=gentle?.8:smooth((beat-recent.beat)/1.5);
-      power(ctx,recent.event.element,mix(x,bx,p),floor-mix(ph*.56,bh*.59,p),Math.max(12,ph*.15),t,1-p*.38);
-      if(recent.event.id==='phoenix'){
-        const px=mix(x,bx,p),py=floor-ph*.7,r=ph*(recent.count===recent.total?.19:.11);
-        ctx.fillStyle='#ffd54f';ctx.beginPath();ctx.moveTo(px+r,py);ctx.quadraticCurveTo(px-r*.3,py-r,px-r,py-r*.8);
-        ctx.lineTo(px-r*.5,py);ctx.lineTo(px-r,py+r*.65);ctx.quadraticCurveTo(px,py+r*.6,px+r,py);ctx.fill();
-      }
+    if(recent)RR_BATTLE_EFFECTS.player(ctx,recent,beat,layout,quiet);
+    for(let i=0;i<battle.ring;i++){
+      const [,color]=RR_BATTLE.elements[['earth','water','fire','air'][i]];
+      const ringX=x+(i-1.5)*ph*.16,ringY=floor-ph*.88;
+      RR_BATTLE_EFFECTS.light(ctx,color,ringX,ringY,ph*.09,.68);
+      ctx.lineWidth=1.6;ctx.strokeStyle=color;ctx.beginPath();
+      ctx.ellipse(ringX,ringY,ph*.04,ph*.055,-.28,0,Math.PI*2);ctx.stroke();
     }
-    if(recent?.loss)power(ctx,'void',x,floor-ph*.48,ph*.31,t);
-    if(recent?.heal)power(ctx,'pixel',x,floor-ph*.48,ph*.28,t);
-    if(battle.ring)for(let i=0;i<battle.ring;i++) power(ctx,['earth','water','fire','air'][i],x+(i-1.5)*ph*.2,floor-ph*.88,ph*.12,t,.65);
   }
 
   const returnStory = [
