@@ -1,4 +1,4 @@
-# Robô Ritmado 0.15
+# Robô Ritmado 0.15.1
 
 Ajude Pixel a tocar e atravessar os dez mundos da aventura musical. Abra **Abrir-jogo.cmd** ou **index.html** no Chrome ou Edge com a pasta `assets` ao lado.
 

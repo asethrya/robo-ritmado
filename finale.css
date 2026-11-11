@@ -70,8 +70,8 @@ body[data-screen=menu] .menu-nav .orbit-button {
 .safety-dialog .welcome-portrait {
   overflow: visible;
   pointer-events: none;
-  /* Pixel faces the viewer. The extended left hand is on the right. */
-  clip-path: polygon(-35% -30%, 100% -30%, 100% 100%, 49% 100%, 49% 125%, -35% 125%);
+  /* Trim the resting hand at the frame and let the extended hand overlap. */
+  clip-path: polygon(0 -30%, 145% -30%, 145% 125%, 49% 125%, 49% 100%, 0 100%);
 }
 .about-dialog {
   width: min(500px,90vw);
@@ -210,7 +210,7 @@ body[data-screen=game] .app :is(.track-shell,.scoreboard,.song-strip,.portal-car
   .safety-dialog[open] { max-height: 93svh; overflow: auto; }
   .safety-dialog .safety-body { padding-top: 40px; }
   .safety-dialog .welcome-portrait { width: 100%; height: clamp(146px,27vh,210px); flex-basis: auto; }
-  .safety-dialog .welcome-portrait img { width: auto; height: 110%; margin: 0; object-fit: contain; }
+  .safety-dialog .welcome-portrait img { width: auto; height: 110%; margin: 0 0 7px; object-fit: contain; }
   .safety-dialog .dialog-kicker { font-size: 10px; }
   .safety-dialog .safety-body p,.safety-dialog .safety-body .welcome-warning { font-size: 12px; margin-block: 6px; }
   .safety-dialog .welcome-features span { font-size: 9px; }
